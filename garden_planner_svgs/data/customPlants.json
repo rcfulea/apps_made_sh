@@ -1,0 +1,597 @@
+{
+  "plants": [
+    {
+      "id": "apples",
+      "label": "Apples",
+      "perSquare": 1,
+      "file": "apples.svg"
+    },
+    {
+      "id": "aubergines",
+      "label": "Aubergines",
+      "perSquare": 1,
+      "file": "aubergines.svg"
+    },
+    {
+      "id": "basil",
+      "label": "Basil",
+      "perSquare": 4,
+      "file": "basil.svg"
+    },
+    {
+      "id": "beetroot",
+      "label": "Beetroot",
+      "perSquare": 9,
+      "file": "beetroot.svg"
+    },
+    {
+      "id": "black-currants",
+      "label": "Black currants",
+      "perSquare": 1,
+      "file": "black-currants.svg"
+    },
+    {
+      "id": "blueberries",
+      "label": "Blueberries",
+      "perSquare": 1,
+      "file": "blueberries.svg"
+    },
+    {
+      "id": "bramble",
+      "label": "Bramble",
+      "perSquare": 1,
+      "file": "bramble.svg"
+    },
+    {
+      "id": "broad-bean",
+      "label": "Broad bean",
+      "perSquare": 4,
+      "file": "broad-bean.svg"
+    },
+    {
+      "id": "broccoli",
+      "label": "Broccoli",
+      "perSquare": 1,
+      "file": "broccoli.svg"
+    },
+    {
+      "id": "brussel-sprouts",
+      "label": "Brussel sprouts",
+      "perSquare": 1,
+      "file": "brussel-sprouts.svg"
+    },
+    {
+      "id": "cabbage-green",
+      "label": "Cabbage Green",
+      "perSquare": 1,
+      "file": "cabbage-green.svg"
+    },
+    {
+      "id": "cabbage-purple",
+      "label": "Cabbage Purple",
+      "perSquare": 1,
+      "file": "cabbage-purple.svg"
+    },
+    {
+      "id": "carrots",
+      "label": "Carrots",
+      "perSquare": 16,
+      "file": "carrots.svg"
+    },
+    {
+      "id": "cauliflower",
+      "label": "Cauliflower",
+      "perSquare": 1,
+      "file": "cauliflower.svg"
+    },
+    {
+      "id": "celeriac",
+      "label": "Celeriac",
+      "perSquare": 1,
+      "file": "celeriac.svg"
+    },
+    {
+      "id": "celery",
+      "label": "Celery",
+      "perSquare": 1,
+      "file": "celery.svg"
+    },
+    {
+      "id": "chard",
+      "label": "Chard",
+      "perSquare": 4,
+      "file": "chard.svg"
+    },
+    {
+      "id": "chillies",
+      "label": "Chillies",
+      "perSquare": 1,
+      "file": "chillies.svg"
+    },
+    {
+      "id": "chives",
+      "label": "Chives",
+      "perSquare": 4,
+      "file": "chives.svg"
+    },
+    {
+      "id": "coriander",
+      "label": "Coriander",
+      "perSquare": 4,
+      "file": "coriander.svg"
+    },
+    {
+      "id": "corn",
+      "label": "Corn",
+      "perSquare": 4,
+      "file": "corn.svg"
+    },
+    {
+      "id": "courgette",
+      "label": "Courgette",
+      "perSquare": 1,
+      "file": "courgette.svg"
+    },
+    {
+      "id": "cucumber",
+      "label": "Cucumber",
+      "perSquare": 2,
+      "file": "cucumber.svg"
+    },
+    {
+      "id": "dill",
+      "label": "Dill",
+      "perSquare": 4,
+      "file": "dill.svg"
+    },
+    {
+      "id": "fennel",
+      "label": "Fennel",
+      "perSquare": 1,
+      "file": "fennel.svg"
+    },
+    {
+      "id": "figs",
+      "label": "Figs",
+      "perSquare": 1,
+      "file": "figs.svg"
+    },
+    {
+      "id": "french-beans",
+      "label": "French beans",
+      "perSquare": 4,
+      "file": "french-beans.svg"
+    },
+    {
+      "id": "garlic",
+      "label": "Garlic",
+      "perSquare": 9,
+      "file": "garlic.svg"
+    },
+    {
+      "id": "ginger",
+      "label": "Ginger",
+      "perSquare": 4,
+      "file": "ginger.svg"
+    },
+    {
+      "id": "globe-artichokes",
+      "label": "Globe artichokes",
+      "perSquare": 1,
+      "file": "globe-artichokes.svg"
+    },
+    {
+      "id": "gooseberry",
+      "label": "Gooseberry",
+      "perSquare": 1,
+      "file": "gooseberry.svg"
+    },
+    {
+      "id": "green-beans",
+      "label": "Green beans",
+      "perSquare": 9,
+      "file": "green-beans.svg"
+    },
+    {
+      "id": "kale",
+      "label": "Kale",
+      "perSquare": 1,
+      "file": "kale.svg"
+    },
+    {
+      "id": "kohl-rabi",
+      "label": "Kohl rabi",
+      "perSquare": 4,
+      "file": "kohl-rabi.svg"
+    },
+    {
+      "id": "leek",
+      "label": "Leek",
+      "perSquare": 4,
+      "file": "leek.svg"
+    },
+    {
+      "id": "lettuce-big-head",
+      "label": "Lettuce (big head)",
+      "perSquare": 1,
+      "file": "lettuce-big-head.svg"
+    },
+    {
+      "id": "lettuce-little-gem",
+      "label": "Lettuce (little gem)",
+      "perSquare": 4,
+      "file": "lettuce-little-gemm.svg"
+    },
+    {
+      "id": "loganberry",
+      "label": "Loganberry",
+      "perSquare": 1,
+      "file": "loganberry.svg"
+    },
+    {
+      "id": "mint",
+      "label": "Mint",
+      "perSquare": 4,
+      "file": "mint.svg"
+    },
+    {
+      "id": "mooli-radish",
+      "label": "Mooli radish",
+      "perSquare": 4,
+      "file": "mooli-radish.svg"
+    },
+    {
+      "id": "onion-red",
+      "label": "Onion (red)",
+      "perSquare": 4,
+      "file": "onion-red.svg"
+    },
+    {
+      "id": "onion-yellow",
+      "label": "Onion (yellow)",
+      "perSquare": 4,
+      "file": "onion-yellow.svg"
+    },
+    {
+      "id": "pak-choi",
+      "label": "Pak choi",
+      "perSquare": 4,
+      "file": "pak-choi.svg"
+    },
+    {
+      "id": "parsley",
+      "label": "Parsley",
+      "perSquare": 4,
+      "file": "parley.svg"
+    },
+    {
+      "id": "parsnip",
+      "label": "Parsnip",
+      "perSquare": 16,
+      "file": "parsnip.svg"
+    },
+    {
+      "id": "pear",
+      "label": "Pear",
+      "perSquare": 1,
+      "file": "pear.svg"
+    },
+    {
+      "id": "peas",
+      "label": "Peas",
+      "perSquare": 8,
+      "file": "peas.svg"
+    },
+    {
+      "id": "pepper-green",
+      "label": "Pepper (green)",
+      "perSquare": 1,
+      "file": "pepper-green.svg"
+    },
+    {
+      "id": "pepper-red",
+      "label": "Pepper (red)",
+      "perSquare": 1,
+      "file": "pepper-red.svg"
+    },
+    {
+      "id": "pepper-yellow",
+      "label": "Pepper (yellow)",
+      "perSquare": 1,
+      "file": "pepper-yellow.svg"
+    },
+    {
+      "id": "purple-sprouting-broccoli",
+      "label": "Purple sprouting broccoli",
+      "perSquare": 1,
+      "file": "purple-sprouting-broccoli.svg"
+    },
+    {
+      "id": "radish",
+      "label": "Radish",
+      "perSquare": 16,
+      "file": "radish.svg"
+    },
+    {
+      "id": "raspberry",
+      "label": "Raspberry",
+      "perSquare": 1,
+      "file": "raspberry.svg"
+    },
+    {
+      "id": "red-currants",
+      "label": "Red currants",
+      "perSquare": 1,
+      "file": "red-currants.svg"
+    },
+    {
+      "id": "rhubarb",
+      "label": "Rhubarb",
+      "perSquare": 1,
+      "file": "rhubarb.svg"
+    },
+    {
+      "id": "rocket",
+      "label": "Rocket",
+      "perSquare": 4,
+      "file": "rocket.svg"
+    },
+    {
+      "id": "rosemary",
+      "label": "Rosemary",
+      "perSquare": 4,
+      "file": "rosemerry.svg"
+    },
+    {
+      "id": "saffron",
+      "label": "Saffron",
+      "perSquare": 16,
+      "file": "saffron.svg"
+    },
+    {
+      "id": "salads",
+      "label": "Salads",
+      "perSquare": 4,
+      "file": "salads.svg"
+    },
+    {
+      "id": "spinach",
+      "label": "Spinach",
+      "perSquare": 9,
+      "file": "spinach.svg"
+    },
+    {
+      "id": "spring-onion",
+      "label": "Spring onion",
+      "perSquare": 9,
+      "file": "spring-onion.svg"
+    },
+    {
+      "id": "squash-winter",
+      "label": "Squash (winter)",
+      "perSquare": 1,
+      "file": "squash-winter.svg"
+    },
+    {
+      "id": "strawberries",
+      "label": "Strawberries",
+      "perSquare": 4,
+      "file": "strawberries.svg"
+    },
+    {
+      "id": "sunchoke",
+      "label": "Sunchoke",
+      "perSquare": 1,
+      "file": "sunchoke.svg"
+    },
+    {
+      "id": "sunflower",
+      "label": "Sunflower",
+      "perSquare": 1,
+      "file": "sunflower.svg"
+    },
+    {
+      "id": "tomato-beef",
+      "label": "Tomato (beef)",
+      "perSquare": 1,
+      "file": "tomato-beef.svg"
+    },
+    {
+      "id": "tomato-cherry",
+      "label": "Tomato (cherry)",
+      "perSquare": 1,
+      "file": "tomato-cherry.svg"
+    },
+    {
+      "id": "tomato-roma",
+      "label": "Tomato (roma)",
+      "perSquare": 1,
+      "file": "tomato-roma.svg"
+    },
+    {
+      "id": "turnip",
+      "label": "Turnip",
+      "perSquare": 9,
+      "file": "turnip.svg"
+    },
+    {
+      "id": "white-currants",
+      "label": "White currants",
+      "perSquare": 1,
+      "file": "white-currants.svg"
+    },
+    {
+      "id": "winter-cabbage",
+      "label": "Winter Cabbage",
+      "perSquare": 1,
+      "file": "winter-cabbage.svg"
+    }
+  ],
+  "overrides": {
+    "tomato": {
+      "file": "tomato-normal.svg",
+      "label": "Tomato Normal",
+      "perSquare": 1
+    },
+    "carrot": {
+      "file": "carrots.svg",
+      "label": "Carrots",
+      "perSquare": 16
+    },
+    "lettuce": {
+      "file": "lettuce-big-head.svg",
+      "label": "Lettuce Big Head",
+      "perSquare": 1
+    },
+    "cucumber": {
+      "file": "cucumber.svg",
+      "label": "Cucumber",
+      "perSquare": 2
+    },
+    "pepper": {
+      "file": "pepper-red.svg",
+      "label": "Pepper Red",
+      "perSquare": 1
+    },
+    "beans": {
+      "file": "french-beans.svg",
+      "label": "French Beans",
+      "perSquare": 9
+    },
+    "pumpkin": {
+      "file": "squash-winter.svg",
+      "label": "Squash Winter",
+      "perSquare": 1
+    },
+    "strawberry": {
+      "file": "strawberries.svg",
+      "label": "Strawberries",
+      "perSquare": 4
+    },
+    "garlic": {
+      "file": "garlic.svg",
+      "label": "Garlic",
+      "perSquare": 9
+    },
+    "onion": {
+      "file": "onion-red.svg",
+      "label": "Onion Red",
+      "perSquare": 16
+    },
+    "basil": {
+      "file": "basil.svg",
+      "label": "Basil",
+      "perSquare": 4
+    },
+    "broccoli": {
+      "file": "broccoli.svg",
+      "label": "Broccoli",
+      "perSquare": 1
+    },
+    "cabbage": {
+      "file": "cabbage-green.svg",
+      "label": "Cabbage Green",
+      "perSquare": 1
+    },
+    "corn": {
+      "file": "corn.svg",
+      "label": "Corn",
+      "perSquare": 4
+    },
+    "radish": {
+      "file": "radish.svg",
+      "label": "Radish",
+      "perSquare": 16
+    },
+    "beet": {
+      "file": "beetroot.svg",
+      "label": "Beetroot",
+      "perSquare": 9
+    },
+    "eggplant": {
+      "file": "aubergines.svg",
+      "label": "Aubergines",
+      "perSquare": 1
+    },
+    "kale": {
+      "file": "kale.svg",
+      "label": "Kale",
+      "perSquare": 1
+    },
+    "peas": {
+      "file": "peas.svg",
+      "label": "Peas",
+      "perSquare": 8
+    },
+    "turnip": {
+      "file": "turnip.svg",
+      "label": "Turnip",
+      "perSquare": 9
+    },
+    "leek": {
+      "file": "leek.svg",
+      "label": "Leek",
+      "perSquare": 9
+    },
+    "parsnip": {
+      "file": "parsnip.svg",
+      "label": "Parsnip",
+      "perSquare": 16
+    },
+    "spinach": {
+      "file": "spinach.svg",
+      "label": "Spinach",
+      "perSquare": 9
+    },
+    "chard": {
+      "file": "chard.svg",
+      "label": "Chard",
+      "perSquare": 4
+    },
+    "okra": {
+      "file": "courgette.svg",
+      "label": "Courgette",
+      "perSquare": 1
+    },
+    "celery": {
+      "file": "celery.svg",
+      "label": "Celery",
+      "perSquare": 1
+    },
+    "collards": {
+      "file": "kale.svg",
+      "label": "Kale",
+      "perSquare": 1
+    },
+    "parsley": {
+      "file": "parley.svg",
+      "label": "Parley",
+      "perSquare": 4
+    },
+    "potato": {
+      "file": "potato.svg",
+      "label": "Potato",
+      "perSquare": 2
+    },
+    "kohlrabi": {
+      "file": "kohl-rabi.svg",
+      "label": "Kohl Rabi",
+      "perSquare": 4
+    },
+    "greens": {
+      "file": "salads.svg",
+      "label": "Salads",
+      "perSquare": 4
+    },
+    "radicchio": {
+      "file": "salads.svg",
+      "label": "Salads",
+      "perSquare": 4
+    },
+    "zucchini": {
+      "file": "courgette.svg",
+      "label": "Courgette",
+      "perSquare": 1
+    }
+  }
+}
