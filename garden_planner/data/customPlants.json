@@ -1,0 +1,22 @@
+{
+  "plants": [
+    {
+      "id": "cauliflower",
+      "label": "Cauliflower",
+      "perSquare": 1,
+      "file": "cauliflower.svg"
+    }
+  ],
+  "overrides": {
+    "cabbage": {
+      "label": "Cabbage",
+      "perSquare": 1,
+      "file": "cabbage.svg"
+    },
+    "zucchini": {
+      "label": "Courgette",
+      "perSquare": 1,
+      "file": "zucchini.svg"
+    }
+  }
+}

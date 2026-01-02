@@ -1,0 +1,365 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background-color: #4caf50;
+  color: #fff;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+#user-info {
+  margin-right: 8px;
+  font-weight: bold;
+}
+
+.panel {
+  max-width: 400px;
+  margin: 80px auto;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.panel form label {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.panel input[type='text'],
+.panel input[type='password'],
+.panel input[type='number'] {
+  width: 100%;
+  padding: 6px;
+  margin-top: 4px;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.btn {
+  background-color: #4caf50;
+  border: none;
+  color: white;
+  padding: 6px 12px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.btn:hover {
+  background-color: #45a049;
+}
+
+.error {
+  color: #d32f2f;
+  margin-top: 8px;
+}
+
+#controls {
+  padding: 10px;
+  background-color: #eef7ee;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+}
+
+#controls label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.9rem;
+}
+
+#planner-container {
+  display: flex;
+  min-height: 400px;
+}
+
+.palette {
+  width: 140px;
+  border-right: 1px solid #ddd;
+  padding: 10px;
+  background-color: #fff;
+  overflow-y: auto;
+}
+
+.palette h3 {
+  margin-top: 0;
+  font-size: 1rem;
+  margin-bottom: 6px;
+}
+
+/* Search input in plant palette */
+.plant-search {
+  width: 100%;
+  padding: 6px;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+#plants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.plant-item {
+  width: 70px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: 24px;
+  cursor: grab;
+  user-select: none;
+  background-color: #fafafa;
+  padding: 4px;
+}
+
+.plant-item:active {
+  cursor: grabbing;
+}
+
+/* Wrapper for emoji and count overlay within plant items */
+.plant-emoji-wrapper {
+  position: relative;
+  width: 100%;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+/* Count overlay displayed when square foot mode is enabled */
+.plant-count-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: #4caf50;
+  color: #fff;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+}
+
+/* Label below the emoji */
+.plant-label {
+  font-size: 0.7rem;
+  text-align: center;
+  margin-top: 2px;
+}
+
+#garden-area {
+  flex: 1;
+  padding: 10px;
+  overflow: auto;
+}
+
+/* Wrapper around each bed to separate them visually */
+.bed-wrapper {
+  margin-bottom: 20px;
+}
+
+/* Heading for each bed */
+.bed-heading {
+  font-weight: bold;
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Delete bed button */
+.delete-bed-btn {
+  background: none;
+  border: none;
+  color: #d32f2f;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.delete-bed-btn:hover {
+  color: #b00020;
+}
+
+/* The grid container for the garden bed. Styles are applied dynamically via inline style. */
+.grid {
+  border: 1px solid #555;
+  background-color: #fff;
+  margin-top: 10px;
+}
+
+.cell {
+  border: 1px dashed #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-size: 24px;
+  overflow: hidden;
+}
+
+.cell.dragover {
+  background-color: #e3f2fd;
+}
+
+.cell .plant {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+/* Nested spans inside a plant element */
+.cell .plant-emoji {
+  font-size: 24px;
+}
+
+.cell .plant-count {
+  font-size: 0.7rem;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: #4caf50;
+  color: #fff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Style for cells with active border */
+.cell.border-active {
+  border: 2px solid #4caf50;
+}
+
+/* Cells that are hidden by month filter appear dimmed */
+.cell.month-hidden .plant {
+  opacity: 0.2;
+}
+
+/* Visual feedback when border edit mode is active */
+.border-editing .cell {
+  cursor: crosshair;
+}
+
+/* Overlay base for dialogs (plans and plant manager) */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.overlay.hidden {
+  display: none;
+}
+
+/* Dialog boxes for plan and plant management */
+.dialog {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  width: 340px;
+  max-width: 90%;
+}
+
+/* Copy mode indicator bar */
+#copy-indicator {
+  padding: 8px 12px;
+  background: #ffeb3b;
+  border-bottom: 1px solid #fdd835;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#copy-indicator.hidden {
+  display: none;
+}
+
+/* Overlay for plant details dialog */
+.details-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.details-dialog {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  width: 320px;
+  max-width: 90%;
+}
+
+.btn-secondary {
+  background-color: #ddd;
+  border: none;
+  color: #333;
+  padding: 6px 12px;
+  text-align: center;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-secondary:hover {
+  background-color: #ccc;
+}
+
+.hidden {
+  display: none;
+}

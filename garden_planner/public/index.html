@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Self‑Hosted Garden Planner</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="login-panel" class="panel">
+      <h2>Garden Planner Login</h2>
+      <form id="login-form">
+        <label>
+          Username:<br />
+          <input type="text" id="username" autocomplete="username" required />
+        </label>
+        <br />
+        <label>
+          Password:<br />
+          <input type="password" id="password" autocomplete="current-password" required />
+        </label>
+        <br />
+        <button type="submit">Login</button>
+      </form>
+      <div id="login-error" class="error"></div>
+    </div>
+    <div id="app" class="hidden">
+      <header>
+        <h1>Garden Planner</h1>
+        <div id="user-info"></div>
+        <button id="logout-btn" class="btn">Logout</button>
+      </header>
+      <div id="controls">
+        <h3>Create or Load Garden</h3>
+        <label>
+          Bed width (m):
+          <input type="number" id="bed-width" value="2" min="0.3" step="0.1" />
+        </label>
+        <label>
+          Bed height (m):
+          <input type="number" id="bed-height" value="1" min="0.3" step="0.1" />
+        </label>
+        <label>
+          Cell size (cm):
+          <input type="number" id="cell-size" value="30" min="10" step="1" />
+        </label>
+        <button id="add-bed" class="btn">Add Bed</button>
+        <button id="load-garden" class="btn">Load Garden</button>
+        <button id="save-garden" class="btn">Save Garden</button>
+        <!-- Button to save current garden as a named plan -->
+        <button id="save-plan" class="btn">Save Plan As</button>
+        <!-- Button to open the plans management overlay -->
+        <button id="manage-plans" class="btn">Plans</button>
+        <!-- Button to open the plant management overlay (upload/delete icons) -->
+        <button id="manage-plants" class="btn">Manage Plants</button>
+        <!-- Month filter selector -->
+        <label style="display:flex; flex-direction:column; font-size:0.9rem;">
+          Month:
+          <select id="month-filter">
+            <option value="all">All</option>
+            <option value="Jan">Jan</option>
+            <option value="Feb">Feb</option>
+            <option value="Mar">Mar</option>
+            <option value="Apr">Apr</option>
+            <option value="May">May</option>
+            <option value="Jun">Jun</option>
+            <option value="Jul">Jul</option>
+            <option value="Aug">Aug</option>
+            <option value="Sep">Sep</option>
+            <option value="Oct">Oct</option>
+            <option value="Nov">Nov</option>
+            <option value="Dec">Dec</option>
+          </select>
+        </label>
+        <label style="display: flex; align-items: center; gap: 4px;">
+          <input type="checkbox" id="toggle-sfg" />
+          Square Foot Mode
+        </label>
+        <label style="display: flex; align-items: center; gap: 4px;">
+          <input type="checkbox" id="border-mode" />
+          Border Mode
+        </label>
+      </div>
+      <div id="planner-container">
+        <div id="palette" class="palette">
+          <h3>Plant Palette</h3>
+          <input type="text" id="plant-search" class="plant-search" placeholder="Search plants..." />
+          <div id="plants"></div>
+        </div>
+        <div id="garden-area">
+          <!-- Bed grid will be inserted here -->
+        </div>
+      </div>
+      <!-- Copy mode indicator (shows when copying a plant) -->
+      <div id="copy-indicator" class="hidden">Copy mode: click a cell to paste the plant. <button id="cancel-copy" class="btn-secondary" style="margin-left:8px;">Cancel Copy</button></div>
+
+      <!-- Plans management overlay -->
+      <div id="plans-overlay" class="overlay hidden">
+        <div class="dialog">
+          <h3>Saved Plans</h3>
+          <div id="plans-list"></div>
+          <div style="margin-top:12px;text-align:right;">
+            <button type="button" id="plans-close" class="btn-secondary">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Plant management overlay -->
+      <div id="plants-overlay" class="overlay hidden">
+        <div class="dialog">
+          <h3>Manage Plants</h3>
+          <div id="custom-plants-list" style="max-height:200px; overflow-y:auto; margin-bottom:10px;"></div>
+          <h4>Add New Plant</h4>
+          <label style="display:block;margin-bottom:8px;">
+            Plant name:<br/>
+            <input type="text" id="new-plant-name" style="width:100%;padding:4px;box-sizing:border-box;" />
+          </label>
+          <label style="display:block;margin-bottom:8px;">
+            Plants per square (number):<br/>
+            <input type="number" id="new-plant-count" min="1" max="64" value="1" style="width:100%;padding:4px;box-sizing:border-box;" />
+          </label>
+          <label style="display:block;margin-bottom:8px;">
+            SVG icon file:<br/>
+            <input type="file" id="new-plant-file" accept="image/svg+xml" style="width:100%;" />
+          </label>
+          <div style="margin-top:12px;text-align:right;">
+            <button type="button" id="add-custom-plant" class="btn">Add Plant</button>
+            <button type="button" id="plants-close" class="btn-secondary" style="margin-left:6px;">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
