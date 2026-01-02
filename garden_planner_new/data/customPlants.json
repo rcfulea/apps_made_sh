@@ -1,0 +1,11 @@
+{
+  "plants": [
+    {
+      "id": "test-plant",
+      "label": "Test Plant",
+      "perSquare": 1,
+      "file": "test-plant.svg"
+    }
+  ],
+  "overrides": {}
+}
