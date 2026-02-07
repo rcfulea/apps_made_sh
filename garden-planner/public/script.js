@@ -1944,7 +1944,7 @@ function previewBorderRect(endCell) {
   });
 }
 
-// Apply border to all cells in rectangle
+// Apply border to all cells in rectangle (toggle: if all bordered, remove; otherwise add)
 function applyBorderRect(endCell) {
   if (!borderDragStart || !isBorderDragging) return;
 
@@ -1960,13 +1960,32 @@ function applyBorderRect(endCell) {
   const minCol = Math.min(startCol, endCol);
   const maxCol = Math.max(startCol, endCol);
 
-  // Apply border to all cells in rectangle
+  // Find all cells in rectangle
   const cells = bed.gridEl.querySelectorAll('.cell');
+  const rectCells = [];
   cells.forEach(cell => {
     const r = parseInt(cell.dataset.row, 10);
     const c = parseInt(cell.dataset.col, 10);
     if (r >= minRow && r <= maxRow && c >= minCol && c <= maxCol) {
-      const key = `${r},${c}`;
+      rectCells.push(cell);
+    }
+  });
+
+  // Check if ALL cells in rectangle are already bordered
+  const allBordered = rectCells.every(cell => {
+    const key = `${cell.dataset.row},${cell.dataset.col}`;
+    return bed.borders[key];
+  });
+
+  // Toggle: if all bordered, remove; otherwise add
+  rectCells.forEach(cell => {
+    const key = `${cell.dataset.row},${cell.dataset.col}`;
+    if (allBordered) {
+      // Remove borders
+      delete bed.borders[key];
+      cell.classList.remove('border-active');
+    } else {
+      // Add borders
       bed.borders[key] = true;
       cell.classList.add('border-active');
     }
