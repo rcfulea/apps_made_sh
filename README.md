@@ -35,15 +35,24 @@ A self-hosted, browser-based garden planning tool that lets you design your gard
    node server.js
    ```
 
-   **Using Docker:**
+   **Using Docker (Manual):**
    ```bash
    # Build the image
    docker build -t garden-planner .
 
-   # Run with persistent data volume (recommended)
+   # Run with persistent data volume
    docker run -p 3000:3000 -v $(pwd)/data:/app/data garden-planner
    ```
-   *Note: Without the volume mount, your data will be lost when the container stops.*
+
+   **Using Docker Compose & Watchtower (Automatic Updates):**
+   This repository includes a GitHub Action that automatically builds and publishes the Docker image to GitHub Container Registry (GHCR) on every push to `main`.
+
+   1. Copy the `docker-compose.yml` to your server.
+   2. Run:
+      ```bash
+      docker-compose up -d
+      ```
+   3. Watchtower will automatically detect new images pushed to GHCR and update your running container.
 
 4. **First Run Setup**:
    - Open your browser and navigate to `http://localhost:3000`.
