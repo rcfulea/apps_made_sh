@@ -12,7 +12,7 @@ const crypto = require('crypto');
 
 // Paths to data files
 const dataDir = path.join(__dirname, 'data');
-const usersFile = path.join(dataDir, 'users.json');
+const usersFile = path.join(dataDir, 'users_secure.json');
 const gardensFile = path.join(dataDir, 'gardens.json');
 
 // File for storing custom plant definitions. These definitions are

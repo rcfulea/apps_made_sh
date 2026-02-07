@@ -9,5 +9,6 @@ payload.json
 
 # User data (exclude from image build)
 data/users.json
+data/users_secure.json
 data/gardens.json
 data/plans/
