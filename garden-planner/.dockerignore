@@ -1,0 +1,13 @@
+# Docker ignore file
+node_modules/
+.git/
+.gitignore
+*.log
+npm-debug.log*
+server.log
+payload.json
+
+# User data (exclude from image build)
+data/users.json
+data/gardens.json
+data/plans/

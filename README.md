@@ -35,6 +35,16 @@ A self-hosted, browser-based garden planning tool that lets you design your gard
    node server.js
    ```
 
+   **Using Docker:**
+   ```bash
+   # Build the image
+   docker build -t garden-planner .
+
+   # Run with persistent data volume (recommended)
+   docker run -p 3000:3000 -v $(pwd)/data:/app/data garden-planner
+   ```
+   *Note: Without the volume mount, your data will be lost when the container stops.*
+
 4. **First Run Setup**:
    - Open your browser and navigate to `http://localhost:3000`.
    - You will be greeted with a **Welcome Screen**.
