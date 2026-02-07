@@ -44,15 +44,47 @@ A self-hosted, browser-based garden planning tool that lets you design your gard
    docker run -p 3000:3000 -v $(pwd)/data:/app/data garden-planner
    ```
 
-   **Using Docker Compose & Watchtower (Automatic Updates):**
-   This repository includes a GitHub Action that automatically builds and publishes the Docker image to GitHub Container Registry (GHCR) on every push to `main`.
+   **Using Docker Compose (Build from Source):**
+   This method builds the image on your server.
+   ```yaml
+   version: '3.8'
+   services:
+     garden-planner:
+       image: garden-planner:latest
+       build:
+         context: https://github.com/rcfulea/apps_made_sh.git#main:garden-planner
+       ports:
+         - "3090:3000"
+       volumes:
+         - garden_planner_data:/app/data
+       restart: unless-stopped
+   volumes:
+     garden_planner_data:
+       driver: local
+   ```
+   *Note: Watchtower cannot update this stack automatically because it builds from source.*
 
-   1. Copy the `docker-compose.yml` to your server.
-   2. Run:
-      ```bash
-      docker-compose up -d
-      ```
-   3. Watchtower will automatically detect new images pushed to GHCR and update your running container.
+   **Using Docker Compose & Watchtower (Automatic Updates):**
+   To enable automatic updates with Watchtower, use the image built by GitHub Actions:
+   ```yaml
+   version: '3.8'
+   services:
+     garden-planner:
+       # Use the image built by GitHub Actions
+       image: ghcr.io/rcfulea/garden-planner:latest
+       # Do NOT use 'build' here
+       ports:
+         - "3090:3000"
+       volumes:
+         - garden_planner_data:/app/data
+       restart: unless-stopped
+       labels:
+         - "com.centurylinklabs.watchtower.enable=true"
+   volumes:
+     garden_planner_data:
+       driver: local
+   ```
+
 
 4. **First Run Setup**:
    - Open your browser and navigate to `http://localhost:3000`.
