@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Data files with user credentials and data (DO NOT COMMIT)
+data/users.json
+data/gardens.json
+data/plans/
+payload.json
+
+# Logs
+*.log
+npm-debug.log*
+server.log
+
+# Archives
+*.tar.gz
+*.zip
+
+# Environment and config
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Self‑Hosted Garden Planner</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body class="login-page">
+  <!-- Login Panel -->
+  <div id="login-panel" class="panel">
+    <h2 id="auth-title">Garden Planner Login</h2>
+    <!-- Login Form -->
+    <form id="login-form">
+      <label>
+        Username:<br />
+        <input type="text" id="username" autocomplete="username" required />
+      </label>
+      <br />
+      <label>
+        Password:<br />
+        <input type="password" id="password" autocomplete="current-password" required />
+      </label>
+      <br />
+      <button type="submit" class="btn">Login</button>
+    </form>
+    <!-- Registration Form (hidden by default) -->
+    <form id="register-form" class="hidden">
+      <label>
+        Username:<br />
+        <input type="text" id="reg-username" autocomplete="off" required minlength="3" />
+      </label>
+      <br />
+      <label>
+        Password:<br />
+        <input type="password" id="reg-password" autocomplete="new-password" required minlength="4" />
+      </label>
+      <br />
+      <label>
+        Confirm Password:<br />
+        <input type="password" id="reg-password-confirm" autocomplete="new-password" required minlength="4" />
+      </label>
+      <br />
+      <button type="submit" class="btn">Create Account</button>
+    </form>
+    <div id="login-error" class="error"></div>
+    <div id="login-success" class="success hidden"></div>
+    <div class="form-toggle">
+      <span id="toggle-to-register">Don't have an account? <a>Register</a></span>
+      <span id="toggle-to-login" class="hidden">Already have an account? <a>Login</a></span>
+    </div>
+  </div>
+  <div id="app" class="hidden">
+    <header>
+      <h1>Garden Planner</h1>
+      <div id="user-info"></div>
+      <div class="header-actions">
+        <button id="admin-btn" class="btn hidden">Manage Users</button>
+        <button id="change-password-btn" class="btn btn-secondary">Change Password</button>
+        <button id="logout-btn" class="btn">Logout</button>
+      </div>
+    </header>
+    <div id="timeline-container">
+      <div id="timeline-container">
+        <div class="timeline-wrapper" style="width: 96%; margin: 0 auto; display: flex; flex-direction: column;">
+
+          <!-- ROW 1: Season Bar (Flex Ratios must match Labels) -->
+          <!-- Total Units = 1(All) + 2(Winter) + 3(Spring) + 3(Summer) + 3(Autumn) + 1(Winter) = 13 Units -->
+          <div style="display: flex; align-items: flex-end; width: 100%; margin-bottom: 5px;">
+            <div style="flex: 1;"></div> <!-- All Spacer -->
+            <div class="season-segment season-winter" style="flex: 2;" title="Winter">WINTER</div>
+            <div class="season-segment season-spring" style="flex: 3;" title="Spring">SPRING</div>
+            <div class="season-segment season-summer" style="flex: 3;" title="Summer">SUMMER</div>
+            <div class="season-segment season-autumn" style="flex: 3;" title="Autumn">AUTUMN</div>
+            <div class="season-segment season-winter" style="flex: 1;" title="Winter"></div>
+          </div>
+
+          <!-- ROW 2: Slider (Spans full width) -->
+          <div style="width: 100%; padding: 0; position: relative; height: 30px; display: flex; align-items: center;">
+            <input type="range" id="month-slider" min="-1" max="11" value="-1" step="1" style="width: 100%; margin: 0;">
+          </div>
+
+          <!-- ROW 3: Current View Display (centered above labels) -->
+          <div style="text-align: center; font-size: 0.9rem; margin: 8px 0 4px 0;">
+            Current View: <span id="current-month-display" style="font-weight:bold;">Year Round (All)</span>
+          </div>
+
+          <!-- ROW 4: Labels (13 items, flex: 1 each) -->
+          <div id="month-labels" style="display: flex; width: 100%; margin: 0;">
+            <!-- All + 12 Months = 13 Items -->
+            <span id="all-label">All</span>
+            <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>June</span>
+            <span>July</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
+          </div>
+
+        </div>
+      </div>
+      <div id="controls">
+        <!-- Bed Dimensions Group -->
+        <div class="control-group">
+          <label>
+            Bed width (m):
+            <input type="number" id="bed-width" value="2" min="0.3" step="0.1" />
+          </label>
+          <label>
+            Bed height (m):
+            <input type="number" id="bed-height" value="1" min="0.3" step="0.1" />
+          </label>
+          <label>
+            Cell size (cm):
+            <input type="number" id="cell-size" value="30" min="10" step="1" />
+          </label>
+          <button id="add-bed" class="btn">Add Bed</button>
+        </div>
+
+        <!-- File Operations Group -->
+        <div class="control-group">
+          <button id="load-garden" class="btn">Load Garden</button>
+          <button id="save-garden" class="btn">Save Garden</button>
+          <button id="save-plan" class="btn">Save Plan As</button>
+          <button id="manage-plans" class="btn">Plans</button>
+        </div>
+
+        <!-- Tools Group -->
+        <div class="control-group">
+          <button id="manage-plants" class="btn">Manage Plants</button>
+          <button id="summary-btn" class="btn">Summary</button>
+          <button id="undo-btn" class="btn btn-icon" title="Undo (Ctrl+Z)" disabled>↶</button>
+          <button id="redo-btn" class="btn btn-icon" title="Redo (Ctrl+Y)" disabled>↷</button>
+        </div>
+
+        <!-- Settings Group -->
+        <div class="control-group">
+          <label style="display: flex; align-items: center; gap: 4px; flex-direction: row;">
+            <input type="checkbox" id="toggle-sfg" />
+            Square Foot Mode
+          </label>
+          <label style="display: flex; align-items: center; gap: 4px; flex-direction: row;">
+            <input type="checkbox" id="border-mode" />
+            Border Mode
+          </label>
+        </div>
+
+        <!-- Copy Mode Indicator (shows when copying a plant) -->
+        <div id="copy-indicator" class="control-group hidden"
+          style="background-color: #fff3cd; padding: 6px 12px; border-radius: 4px; border: 1px solid #ffc107;">
+          <span style="font-size: 0.85rem;">Copy mode: click a cell to paste</span>
+          <button id="cancel-copy" class="btn-secondary">Cancel</button>
+        </div>
+      </div>
+      <div id="planner-container">
+        <div id="palette" class="palette">
+          <h3>Plant Palette</h3>
+          <div class="search-wrapper">
+            <input type="text" id="plant-search" class="plant-search" placeholder="Search plants..." />
+            <button type="button" id="search-clear" class="search-clear-btn" title="Clear search">×</button>
+          </div>
+          <div id="plants"></div>
+        </div>
+        <div id="garden-area">
+          <!-- Bed grid will be inserted here -->
+        </div>
+      </div>
+
+
+      <!-- Plans management overlay -->
+      <div id="plans-overlay" class="overlay hidden">
+        <div class="dialog">
+          <h3>Saved Plans</h3>
+          <div id="plans-list"></div>
+          <div style="margin-top:12px;text-align:right;">
+            <button type="button" id="plans-close" class="btn-secondary">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Plant management overlay -->
+      <div id="plants-overlay" class="overlay hidden">
+        <div class="dialog">
+          <h3>Manage Plants</h3>
+          <div id="custom-plants-list" style="max-height:200px; overflow-y:auto; margin-bottom:10px;"></div>
+          <h4>Add New Plant</h4>
+          <label style="display:block;margin-bottom:8px;">
+            Plant name:<br />
+            <input type="text" id="new-plant-name" style="width:100%;padding:4px;box-sizing:border-box;" />
+          </label>
+          <label style="display:block;margin-bottom:8px;">
+            Plants per square (number):<br />
+            <input type="number" id="new-plant-count" min="1" max="64" value="1"
+              style="width:100%;padding:4px;box-sizing:border-box;" />
+          </label>
+          <label style="display:block;margin-bottom:8px;">
+            SVG icon file:<br />
+            <input type="file" id="new-plant-file" accept="image/svg+xml" style="width:100%;" />
+          </label>
+          <div style="margin-top:12px;text-align:right;">
+            <button type="button" id="add-custom-plant" class="btn">Add Plant</button>
+            <button type="button" id="plants-close" class="btn-secondary" style="margin-left:6px;">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary overlay -->
+      <div id="summary-overlay" class="overlay hidden">
+        <div class="dialog">
+          <h3>Plan Summary</h3>
+          <div id="summary-list" style="max-height:300px; overflow-y:auto; margin-bottom:10px;"></div>
+          <div style="margin-top:12px;text-align:right;">
+            <button type="button" id="summary-close" class="btn-secondary">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Panel Overlay -->
+    <div id="admin-overlay" class="hidden">
+      <div id="admin-panel">
+        <h2>User Management</h2>
+        <ul id="user-list" class="user-list"></ul>
+        <div style="margin-top: 20px; text-align: right;">
+          <button id="admin-close" class="btn btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Password Change Overlay -->
+    <div id="password-overlay" class="hidden">
+      <div id="password-dialog">
+        <h2>Change Password</h2>
+        <label>Current Password:
+          <input type="password" id="current-password" autocomplete="current-password" />
+        </label>
+        <label>New Password:
+          <input type="password" id="new-password" autocomplete="new-password" />
+        </label>
+        <label>Confirm New Password:
+          <input type="password" id="confirm-password" autocomplete="new-password" />
+        </label>
+        <div id="password-error" class="error"></div>
+        <div id="password-success" class="success hidden"></div>
+        <div class="btn-row">
+          <button id="password-cancel" class="btn btn-secondary">Cancel</button>
+          <button id="password-save" class="btn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rename Bed Modal -->
+    <div id="rename-overlay" class="overlay hidden">
+      <div class="rename-dialog">
+        <h3>Rename Bed</h3>
+        <input type="text" id="rename-input" placeholder="Enter new name..." />
+        <div class="btn-row">
+          <button id="rename-cancel" class="btn btn-secondary">Cancel</button>
+          <button id="rename-save" class="btn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resize Bed Modal -->
+    <div id="resize-overlay" class="overlay hidden">
+      <div class="rename-dialog">
+        <h3>Resize Bed</h3>
+        <label style="display:block;margin-bottom:8px;">
+          Width (m):<br />
+          <input type="number" id="resize-width" min="0.5" step="0.5"
+            style="width:100%;padding:4px;box-sizing:border-box;" />
+        </label>
+        <label style="display:block;margin-bottom:8px;">
+          Height (m):<br />
+          <input type="number" id="resize-height" min="0.5" step="0.5"
+            style="width:100%;padding:4px;box-sizing:border-box;" />
+        </label>
+        <label style="display:block;margin-bottom:8px;">
+          Cell size (cm):<br />
+          <input type="number" id="resize-cellsize" min="10" step="5"
+            style="width:100%;padding:4px;box-sizing:border-box;" />
+        </label>
+        <p style="font-size:0.8rem;color:#666;margin-bottom:10px;">⚠️ Plants outside the new grid will be removed.</p>
+        <div class="btn-row">
+          <button id="resize-cancel" class="btn btn-secondary">Cancel</button>
+          <button id="resize-save" class="btn">Resize</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

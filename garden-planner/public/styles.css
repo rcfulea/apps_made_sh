@@ -1,0 +1,996 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+/* Login page background */
+body.login-page {
+  background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.5)),
+    url('login_background.png') center/cover no-repeat fixed;
+  min-height: 100vh;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background-color: #2e7d32;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+#user-info {
+  margin-right: 12px;
+  font-weight: 500;
+  opacity: 0.95;
+}
+
+.panel {
+  max-width: 400px;
+  margin: 80px auto;
+  padding: 24px;
+  background: #fff;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.panel form label {
+  display: block;
+  margin-bottom: 12px;
+  font-weight: 500;
+  color: #444;
+}
+
+.panel input[type='text'],
+.panel input[type='password'],
+.panel input[type='number'] {
+  width: 100%;
+  padding: 10px 12px;
+  margin-top: 6px;
+  box-sizing: border-box;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.panel input[type='text']:focus,
+.panel input[type='password']:focus,
+.panel input[type='number']:focus {
+  outline: none;
+  border-color: #4caf50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
+}
+
+.btn {
+  background-color: #43a047;
+  border: none;
+  color: white;
+  padding: 10px 18px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn:hover {
+  background-color: #388e3c;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Icon-only button variant */
+.btn-icon {
+  padding: 8px 12px;
+  font-size: 1.1rem;
+  min-width: 40px;
+}
+
+.btn:disabled {
+  background-color: #bdbdbd;
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+.btn:disabled:hover {
+  background-color: #bdbdbd;
+  box-shadow: none;
+}
+
+.error {
+  color: #d32f2f;
+  margin-top: 8px;
+}
+
+#controls {
+  padding: 12px 16px;
+  background-color: #f8faf8;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* Control bar group wrapper for visual organization */
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 16px;
+  margin-right: 8px;
+  border-right: 1px solid #ddd;
+}
+
+.control-group:last-child {
+  border-right: none;
+  padding-right: 0;
+  margin-right: 0;
+}
+
+#controls label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #555;
+}
+
+#controls label input[type="number"] {
+  margin-top: 4px;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 70px;
+  font-size: 0.9rem;
+}
+
+#controls label input[type="number"]:focus {
+  outline: none;
+  border-color: #4caf50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+}
+
+/* Checkbox labels in control bar */
+#controls label input[type="checkbox"] {
+  accent-color: #43a047;
+}
+
+/* Seasonality Slider */
+#timeline-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  padding: 15px;
+  width: 100%;
+  background-color: #fff;
+  /* White background to stand out */
+  border-bottom: 1px solid #ddd;
+  box-sizing: border-box;
+  /* Ensure padding doesn't overflow width */
+}
+
+#season-bar {
+  display: flex;
+  width: 95%;
+  /* Wider */
+  height: 24px;
+  /* Taller for text */
+  margin-bottom: 5px;
+  position: relative;
+  border-radius: 4px;
+  overflow: hidden;
+  /* Clip corners */
+}
+
+.season-segment {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: rgba(0, 0, 0, 0.6);
+  text-transform: uppercase;
+}
+
+.season-spring {
+  background: #a5d6a7;
+}
+
+/* Light Green */
+.season-summer {
+  background: #fff59d;
+}
+
+/* Light Yellow */
+.season-autumn {
+  background: #ffcc80;
+}
+
+/* Light Orange */
+.season-winter {
+  background: #cfd8dc;
+}
+
+/* Light Blue-Grey */
+
+#month-slider {
+  /* Geometric Alignment:
+     Labels are 13 items. Centers are at 1/26, 3/26, ... 25/26.
+     Distance from First to Last Center = 24/26 = 12/13.
+     Offset of First Center = 1/26.
+     We set the Slider Width to exactly the distance between centers.
+     And Margin-Left to the offset.
+     This ensures Thumb 0 aligns with Label 0, and Thumb 12 aligns with Label 12.
+  */
+  width: calc(100% * 12 / 13) !important;
+  margin: 5px 0 5px calc(100% / 26) !important;
+  display: block;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  position: relative;
+  z-index: 10;
+  padding: 0;
+}
+
+/* Track with ticks */
+#month-slider::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 8px;
+  cursor: pointer;
+  background: #e0e0e0;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  /* precise ticks: repeat every 1/12th of the TRACK width */
+  background-image: repeating-linear-gradient(to right, #999, #999 2px, transparent 2px, transparent calc(100% / 12));
+  background-size: 100% 40%;
+  /* Ticks take up bottom 40% of track height? Or maybe full height? */
+  background-repeat: no-repeat;
+  background-position: left center;
+  /* Align to left edge */
+}
+
+.month-label {
+  flex: 1;
+  text-align: center;
+  cursor: pointer;
+  transform: rotate(45deg);
+  transform-origin: left top;
+  margin-top: 15px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* Ensure container has height */
+#month-labels {
+  display: flex;
+  justify-content: space-between;
+  width: 95%;
+  /* Match slider */
+  margin: 0 auto;
+  /* Center */
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 5px;
+  margin-bottom: 60px;
+}
+
+/* Explicit interaction targets need to be big enough */
+#month-labels span {
+  flex: 1;
+  text-align: center;
+  cursor: pointer;
+  /* Default: rotate all? No, rotate only short ones? */
+  /* Or rotate all to fit */
+  transform: rotate(45deg);
+  transform-origin: left top;
+  white-space: nowrap;
+  padding: 5px 0;
+}
+
+/* First span is "All" */
+#month-labels span:first-child {
+  /* It is just another flex item now, but we want it horizontal */
+  transform: none !important;
+  font-weight: bold;
+  /* slight style to look like button/label */
+  border: 1px solid transparent;
+  border-radius: 4px;
+  /* padding handled by generic span */
+}
+
+/* Active state */
+#month-labels span.active {
+  font-weight: bold;
+  color: #2e7d32;
+  transform: rotate(45deg) scale(1.1);
+  /* Keep rotation */
+}
+
+/* Visibility States */
+.month-hidden {
+  opacity: 0.05;
+  /* Faint outline */
+  filter: grayscale(100%);
+  /* Allow clicking to inspect? No, let's keep interactions for active only usually */
+  /* pointer-events: none; - User might want to click empty cell to plant? */
+}
+
+/* New: Harvested/Past state */
+.month-ended {
+  opacity: 0.3;
+  /* Ghost */
+  filter: grayscale(100%) sepia(50%) hue-rotate(200deg);
+  /* Bluish grey ghost */
+}
+
+/* Range Input Styling */
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 24px;
+  width: 24px;
+  border-radius: 50%;
+  background: #2e7d32;
+  cursor: pointer;
+  margin-top: -10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  border: 2px solid #fff;
+  position: relative;
+  z-index: 10;
+}
+
+input[type=range]::-moz-range-thumb {
+  height: 24px;
+  width: 24px;
+  border-radius: 50%;
+  background: #2e7d32;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  border: 2px solid #fff;
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 8px;
+  cursor: pointer;
+  background: linear-gradient(to right, #e0e0e0 0%, #e0e0e0 100%);
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+input[type=range]::-moz-range-track {
+  width: 100%;
+  height: 8px;
+  cursor: pointer;
+  background: linear-gradient(to right, #e0e0e0 0%, #e0e0e0 100%);
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+input[type=range]:focus {
+  outline: none;
+}
+
+#planner-container {
+  display: flex;
+  min-height: 400px;
+}
+
+.palette {
+  width: 110px;
+  min-width: 110px;
+  border-right: 1px solid #ddd;
+  padding: 8px;
+  background-color: #fff;
+  overflow-y: auto;
+}
+
+.palette h3 {
+  margin-top: 0;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+}
+
+/* Search input in plant palette */
+.plant-search {
+  width: 100%;
+  padding: 5px;
+  margin-bottom: 6px;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+#plants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.plant-item {
+  width: 55px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: 20px;
+  cursor: grab;
+  user-select: none;
+  background-color: #fafafa;
+  padding: 3px;
+}
+
+.plant-item:active {
+  cursor: grabbing;
+}
+
+/* Wrapper for emoji and count overlay within plant items */
+.plant-emoji-wrapper {
+  position: relative;
+  width: 100%;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+/* Count overlay displayed when square foot mode is enabled */
+.plant-count-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: #4caf50;
+  color: #fff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+}
+
+/* Label below the emoji */
+.plant-label {
+  font-size: 0.6rem;
+  text-align: center;
+  margin-top: 2px;
+  word-wrap: break-word;
+  line-height: 1.1;
+}
+
+#garden-area {
+  flex: 1;
+  padding: 10px;
+  overflow: auto;
+}
+
+/* Wrapper around each bed to separate them visually */
+.bed-wrapper {
+  margin-bottom: 20px;
+}
+
+/* Heading for each bed */
+.bed-heading {
+  font-weight: bold;
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Delete bed button */
+.delete-bed-btn {
+  background: none;
+  border: none;
+  color: #d32f2f;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.delete-bed-btn:hover {
+  color: #b00020;
+}
+
+/* The grid container for the garden bed. Styles are applied dynamically via inline style. */
+.grid {
+  border: 1px solid #555;
+  background-color: #fff;
+  margin-top: 10px;
+}
+
+.cell {
+  border: 1px dashed #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-size: 24px;
+  overflow: hidden;
+}
+
+.cell.dragover {
+  background-color: rgba(76, 175, 80, 0.2);
+  border: 2px solid #4caf50 !important;
+  box-shadow: inset 0 0 8px rgba(76, 175, 80, 0.3);
+  transition: all 0.15s ease;
+}
+
+/* Animation when plant is placed */
+.cell .plant {
+  animation: plantDrop 0.3s ease-out;
+}
+
+@keyframes plantDrop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.cell .plant {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+/* Nested spans inside a plant element */
+.cell .plant-emoji {
+  font-size: 24px;
+}
+
+.cell .plant-count {
+  font-size: 0.7rem;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: #4caf50;
+  color: #fff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Style for cells with active border */
+.cell.border-active {
+  border: 2px solid #4caf50;
+}
+
+/* Preview highlight during border rectangle drag */
+.cell.border-preview {
+  background-color: rgba(76, 175, 80, 0.3);
+  border: 2px dashed #4caf50;
+}
+
+/* Cells that are hidden by month filter appear dimmed */
+.cell.month-hidden .plant {
+  opacity: 0.2;
+}
+
+/* Visual feedback when border edit mode is active */
+.border-editing .cell {
+  cursor: crosshair;
+}
+
+/* Overlay base for dialogs (plans and plant manager) */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.overlay.hidden {
+  display: none;
+}
+
+/* Dialog boxes for plan and plant management */
+.dialog {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  width: 340px;
+  max-width: 90%;
+}
+
+/* Copy mode indicator bar */
+#copy-indicator {
+  padding: 8px 12px;
+  background: #ffeb3b;
+  border-bottom: 1px solid #fdd835;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#copy-indicator.hidden {
+  display: none;
+}
+
+/* Overlay for plant details dialog */
+.details-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.details-dialog {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  width: 320px;
+  max-width: 90%;
+}
+
+.btn-secondary {
+  background-color: #ddd;
+  border: none;
+  color: #333;
+  padding: 6px 12px;
+  text-align: center;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-secondary:hover {
+  background-color: #ccc;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Companion planting feedback */
+.cell.companion-good {
+  background-color: rgba(76, 175, 80, 0.3) !important;
+  box-shadow: inset 0 0 0 2px #388e3c;
+}
+
+.cell.companion-bad {
+  background-color: rgba(244, 67, 54, 0.3) !important;
+  box-shadow: inset 0 0 0 2px #d32f2f;
+}
+
+/* Enhanced Login Panel */
+#login-panel {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+#login-panel h2 {
+  color: #2e7d32;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.form-toggle {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 0.9rem;
+}
+
+.form-toggle a {
+  color: #4caf50;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.form-toggle a:hover {
+  color: #2e7d32;
+}
+
+.success {
+  color: #2e7d32;
+  background-color: rgba(76, 175, 80, 0.1);
+  padding: 8px;
+  border-radius: 4px;
+  margin-top: 8px;
+}
+
+/* Admin Panel Overlay */
+#admin-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+#admin-panel {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px 30px;
+  min-width: 400px;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+#admin-panel h2 {
+  margin-top: 0;
+  color: #333;
+  border-bottom: 2px solid #4caf50;
+  padding-bottom: 10px;
+}
+
+.user-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.user-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.user-list li:last-child {
+  border-bottom: none;
+}
+
+.user-list .username {
+  font-weight: bold;
+}
+
+.user-list .admin-badge {
+  background: #4caf50;
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 8px;
+}
+
+.btn-danger {
+  background-color: #d32f2f;
+}
+
+.btn-danger:hover {
+  background-color: #b71c1c;
+}
+
+.btn-secondary {
+  background-color: #757575;
+}
+
+.btn-secondary:hover {
+  background-color: #616161;
+}
+
+/* Password Change Dialog */
+#password-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+#password-overlay.hidden {
+  display: none !important;
+}
+
+#admin-overlay.hidden {
+  display: none !important;
+}
+
+#password-dialog {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px 30px;
+  min-width: 350px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+#password-dialog h2 {
+  margin-top: 0;
+  color: #333;
+}
+
+#password-dialog label {
+  display: block;
+  margin: 12px 0 4px;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+#password-dialog input {
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+#password-dialog .btn-row {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* Header button group */
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Rename Modal */
+#rename-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+#rename-overlay.hidden {
+  display: none !important;
+}
+
+.rename-dialog {
+  background: #fff;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  min-width: 320px;
+  animation: dialogFadeIn 0.2s ease-out;
+}
+
+@keyframes dialogFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rename-dialog h3 {
+  margin: 0 0 16px 0;
+  color: #2e7d32;
+  font-size: 1.2rem;
+}
+
+.rename-dialog input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  box-sizing: border-box;
+  margin-bottom: 16px;
+}
+
+.rename-dialog input:focus {
+  outline: none;
+  border-color: #4caf50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
+}
+
+.rename-dialog .btn-row {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* Search wrapper with clear button */
+.search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-wrapper .plant-search {
+  width: 100%;
+  padding-right: 30px;
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 4px;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #999;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+  border-radius: 50%;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.search-clear-btn:hover {
+  color: #333;
+  background-color: rgba(0, 0, 0, 0.1);
+}
