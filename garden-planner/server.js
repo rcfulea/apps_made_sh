@@ -51,13 +51,6 @@ function saveJSON(filePath, data) {
 // Load users - mutable array for registration/deletion
 let usersData = loadJSON(usersFile).users || [];
 
-// Ensure 'rcf' user has admin flag
-usersData.forEach(u => {
-  if (u.username === 'rcf') {
-    u.isAdmin = true;
-  }
-});
-
 // Helper to save users back to disk
 function saveUsers() {
   saveJSON(usersFile, { users: usersData });
@@ -197,6 +190,58 @@ function handleApi(req, res) {
   const cookies = parseCookies(req.headers.cookie);
   const sid = cookies.sid;
   const username = sid && sessions[sid];
+
+  // First-run setup: check if any users exist
+  if (url.pathname === '/api/setup-required' && method === 'GET') {
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ setupRequired: usersData.length === 0 }));
+    return;
+  }
+
+  // First-run setup: create initial admin account (only if no users exist)
+  if (url.pathname === '/api/setup' && method === 'POST') {
+    // Only allow if no users exist yet
+    if (usersData.length > 0) {
+      res.statusCode = 403;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ error: 'Setup already completed' }));
+      return;
+    }
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+      let data;
+      try {
+        data = JSON.parse(body || '{}');
+      } catch (e) {
+        res.statusCode = 400;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        return;
+      }
+      const { username: uname, password: pwd } = data;
+      // Validation
+      if (!uname || typeof uname !== 'string' || uname.trim().length < 3) {
+        res.statusCode = 400;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ error: 'Username must be at least 3 characters' }));
+        return;
+      }
+      if (!pwd || typeof pwd !== 'string' || pwd.length < 4) {
+        res.statusCode = 400;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ error: 'Password must be at least 4 characters' }));
+        return;
+      }
+      // Create admin user
+      const adminUser = { username: uname.trim(), password: pwd, isAdmin: true };
+      usersData.push(adminUser);
+      saveUsers();
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ status: 'ok', message: 'Admin account created. Please login.' }));
+    });
+    return;
+  }
 
   if (url.pathname === '/api/login' && method === 'POST') {
     // Collect body
@@ -386,10 +431,11 @@ function handleApi(req, res) {
       return;
     }
     const targetUsername = decodeURIComponent(url.pathname.split('/').pop());
-    if (targetUsername === 'rcf') {
+    // Prevent deleting yourself
+    if (targetUsername === username) {
       res.statusCode = 400;
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ error: 'Cannot delete admin account' }));
+      res.end(JSON.stringify({ error: 'Cannot delete your own account' }));
       return;
     }
     const idx = usersData.findIndex(u => u.username === targetUsername);

@@ -52,6 +52,32 @@
       <span id="toggle-to-login" class="hidden">Already have an account? <a>Login</a></span>
     </div>
   </div>
+
+  <!-- First-Run Setup Panel (shown when no users exist) -->
+  <div id="setup-panel" class="panel hidden">
+    <h2>🌱 Welcome to Garden Planner</h2>
+    <p style="margin-bottom: 16px; color: #555;">Create your admin account to get started.</p>
+    <form id="setup-form">
+      <label>
+        Admin Username:<br />
+        <input type="text" id="setup-username" autocomplete="off" required minlength="3" />
+      </label>
+      <br />
+      <label>
+        Password:<br />
+        <input type="password" id="setup-password" autocomplete="new-password" required minlength="4" />
+      </label>
+      <br />
+      <label>
+        Confirm Password:<br />
+        <input type="password" id="setup-password-confirm" autocomplete="new-password" required minlength="4" />
+      </label>
+      <br />
+      <button type="submit" class="btn">Create Admin Account</button>
+    </form>
+    <div id="setup-error" class="error"></div>
+  </div>
+
   <div id="app" class="hidden">
     <header>
       <h1>Garden Planner</h1>

@@ -2821,3 +2821,70 @@ if (adminOverlay) {
     if (e.target === adminOverlay) adminOverlay.classList.add('hidden');
   });
 }
+
+// ==========================================
+// FIRST-RUN SETUP LOGIC
+// ==========================================
+const setupPanel = document.getElementById('setup-panel');
+const setupForm = document.getElementById('setup-form');
+const setupError = document.getElementById('setup-error');
+
+// Check if setup is required on page load
+async function checkSetupRequired() {
+  try {
+    const res = await fetch('/api/setup-required');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.setupRequired) {
+        // Show setup panel, hide login panel
+        if (loginPanel) loginPanel.classList.add('hidden');
+        if (setupPanel) setupPanel.classList.remove('hidden');
+      }
+    }
+  } catch (e) {
+    console.error('Failed to check setup requirement', e);
+  }
+}
+
+// Handle setup form submission
+if (setupForm) {
+  setupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setupError.textContent = '';
+
+    const username = document.getElementById('setup-username').value.trim();
+    const password = document.getElementById('setup-password').value;
+    const confirm = document.getElementById('setup-password-confirm').value;
+
+    if (password !== confirm) {
+      setupError.textContent = 'Passwords do not match';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      if (res.ok) {
+        alert('Admin account created successfully! Please log in.');
+        // Switch to login view
+        if (setupPanel) setupPanel.classList.add('hidden');
+        if (loginPanel) loginPanel.classList.remove('hidden');
+        setupForm.reset();
+      } else {
+        const err = await res.json();
+        setupError.textContent = err.error || 'Setup failed';
+      }
+    } catch (e) {
+      setupError.textContent = 'Network error';
+    }
+  });
+}
+
+// Run the check on load
+document.addEventListener('DOMContentLoaded', () => {
+  checkSetupRequired();
+});
