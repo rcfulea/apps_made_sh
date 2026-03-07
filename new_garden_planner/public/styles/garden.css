@@ -1,0 +1,350 @@
+/* ===========================================
+   Garden Planner - Garden Grid Styles
+   Beds, Cells, Borders, Plants
+   =========================================== */
+
+/* Garden Section */
+.garden-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--color-bg);
+}
+
+.garden-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-bg-dark);
+    flex-shrink: 0;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+/* Garden Area */
+.garden-area {
+    flex: 1;
+    overflow: auto;
+    padding: var(--spacing-lg);
+}
+
+/* Bed Container */
+.bed {
+    display: inline-block;
+    margin-bottom: var(--spacing-xl);
+    margin-right: var(--spacing-xl);
+    vertical-align: top;
+}
+
+.bed-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--color-secondary);
+    color: var(--color-text-light);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.bed-name {
+    flex: 1;
+    font-weight: 600;
+}
+
+.bed-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+.bed-actions .btn {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: inherit;
+}
+
+.bed-actions .btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* Bed Grid */
+.bed-grid {
+    display: grid;
+    background: var(--color-bed-border);
+    padding: 3px;
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    gap: 2px;
+    position: relative;
+}
+
+/* Grid Cell */
+.cell {
+    width: 60px;
+    height: 60px;
+    background: var(--color-cell-bg);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background var(--transition);
+}
+
+.cell:hover {
+    background: #b9d9bb;
+}
+
+.cell.dragover {
+    background: var(--color-primary-light);
+    box-shadow: inset 0 0 0 3px var(--color-primary);
+}
+
+/* Cell Borders (The Fixed System!) */
+.cell::before,
+.cell::after {
+    content: '';
+    position: absolute;
+    background: transparent;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* Border classes - applied via JS */
+.cell.border-top {
+    box-shadow: inset 0 3px 0 0 var(--color-secondary);
+}
+
+.cell.border-right {
+    box-shadow: inset -3px 0 0 0 var(--color-secondary);
+}
+
+.cell.border-bottom {
+    box-shadow: inset 0 -3px 0 0 var(--color-secondary);
+}
+
+.cell.border-left {
+    box-shadow: inset 3px 0 0 0 var(--color-secondary);
+}
+
+/* Combined borders - need to use pseudo-elements for multiple */
+.cell[data-borders] {
+    /* Borders are rendered via JS-applied pseudo-element styles */
+}
+
+/* Cell with Plant */
+.cell-plant {
+    width: 85%;
+    height: 85%;
+    object-fit: contain;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Cell Badge (for SFG count) */
+.cell-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: var(--color-primary);
+    color: var(--color-text-light);
+    font-size: 0.65rem;
+    padding: 1px 4px;
+    border-radius: 8px;
+    font-weight: 600;
+    z-index: 6;
+}
+
+/* Cell with variety indicator */
+.cell-variety {
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    right: 2px;
+    font-size: 0.6rem;
+    text-align: center;
+    color: var(--color-text-secondary);
+    background: rgba(255, 255, 255, 0.8);
+    padding: 1px 2px;
+    border-radius: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    z-index: 6;
+}
+
+/* Cell in border mode */
+.garden-area.border-mode .cell {
+    cursor: crosshair;
+}
+
+.garden-area.border-mode .cell:hover {
+    background: var(--color-accent);
+    opacity: 0.7;
+}
+
+/* Border selection rectangle */
+.border-selection {
+    position: absolute;
+    border: 2px dashed var(--color-accent);
+    background: rgba(255, 152, 0, 0.15);
+    pointer-events: none;
+    z-index: 20;
+}
+
+/* Empty state */
+.garden-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--color-text-secondary);
+    text-align: center;
+    padding: var(--spacing-xl);
+}
+
+.garden-empty-icon {
+    font-size: 4rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.garden-empty h3 {
+    margin-bottom: var(--spacing-sm);
+}
+
+/* Drag Ghost (custom drag image) */
+.drag-ghost {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    width: 50px;
+    height: 50px;
+    background: var(--color-primary);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-lg);
+    opacity: 0.9;
+}
+
+.drag-ghost img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
+/* Month-based visibility */
+.cell[data-visible="false"] .cell-plant {
+    opacity: 0.3;
+    filter: grayscale(1);
+}
+
+/* Selected cell for copy/paste */
+.cell.selected {
+    outline: 3px solid var(--color-primary);
+    outline-offset: -3px;
+    background: #d4edda;
+}
+
+/* Copy animation feedback */
+.cell.copied {
+    animation: copyPulse 0.5s ease;
+}
+
+@keyframes copyPulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+        background: #c8e6c9;
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Plant details sidebar content */
+#details-content {
+    padding: var(--spacing-md);
+}
+
+.detail-plant-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto var(--spacing-md);
+    display: block;
+}
+
+.detail-section {
+    margin-bottom: var(--spacing-md);
+}
+
+.detail-section h4 {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-xs);
+    text-transform: uppercase;
+}
+
+.detail-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+}
+
+.tag {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: var(--font-size-sm);
+}
+
+.tag-companion {
+    background: #c8e6c9;
+    color: #1b5e20;
+}
+
+.tag-antagonist {
+    background: #ffcdd2;
+    color: #c62828;
+}
+
+/* Multi-planting badge */
+.cell-multi-badge {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    background: #7c4dff;
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* Companion/Antagonist cell highlights */
+.cell-companion {
+    box-shadow: inset 0 0 0 2px #4caf50, 0 0 6px rgba(76, 175, 80, 0.4);
+}
+
+.cell-antagonist {
+    box-shadow: inset 0 0 0 2px #f44336, 0 0 6px rgba(244, 67, 54, 0.4);
+}

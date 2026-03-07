@@ -1,0 +1,16 @@
+{
+  "users": [
+    {
+      "username": "testadmin",
+      "salt": "1bdb319237ba2e4f59ced9c75907afcc",
+      "hashedPassword": "da44bee3e2d8ab7bef23ba5b4340291ed7019b60125a5cca98684c6c40bb0b7d557b9b4ec905383365068862b73ed227ddb390866bbe31732c57947dcb853235",
+      "isAdmin": true
+    },
+    {
+      "username": "testadmintestadmin",
+      "salt": "1a5ee2e217556cb73f80a985be8b4170",
+      "hashedPassword": "c93b1fba83d8c7b0e05977f151a7a333dd3e759eb9e77bcf6dde1ff88b4c33291346fab9a269d26714e8a00a2e683621b926b100cd5754164ab1746438058929",
+      "isAdmin": false
+    }
+  ]
+}
