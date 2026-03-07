@@ -2,7 +2,7 @@
 
 A self-hosted, browser-based garden planning tool that lets you design your garden beds, track plants, and manage successional planting.
 
-![Garden Planner Screenshot](https://via.placeholder.com/800x400?text=Garden+Planner+Screenshot)
+
 
 ## Features
 
