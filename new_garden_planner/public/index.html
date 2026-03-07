@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garden Planner</title>
+    <meta name="description" content="Plan your garden with drag-and-drop beds, plants, and borders">
+    <link rel="stylesheet" href="/styles/main.css">
+    <link rel="stylesheet" href="/styles/components.css">
+    <link rel="stylesheet" href="/styles/garden.css">
+</head>
+
+<body>
+    <!-- Login Panel -->
+    <div id="login-panel" class="panel">
+        <div class="panel-content">
+            <h1>🌱 Garden Planner</h1>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+                <div id="login-error" class="error"></div>
+            </form>
+            <div class="form-toggle">
+                <span id="toggle-to-register">Don't have an account? <a href="#">Register</a></span>
+                <span id="toggle-to-login" class="hidden">Already have an account? <a href="#">Login</a></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Setup Panel (First Run) -->
+    <div id="setup-panel" class="panel hidden">
+        <div class="panel-content">
+            <h1>🌱 Welcome to Garden Planner</h1>
+            <p class="subtitle">Create your admin account to get started.</p>
+            <form id="setup-form">
+                <div class="form-group">
+                    <label for="setup-username">Admin Username</label>
+                    <input type="text" id="setup-username" required minlength="3" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="setup-password">Password</label>
+                    <input type="password" id="setup-password" required minlength="4" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="setup-confirm">Confirm Password</label>
+                    <input type="password" id="setup-confirm" required minlength="4" autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn btn-primary">Create Admin Account</button>
+                <div id="setup-error" class="error"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="app" class="hidden">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1>🌱 Garden Planner</h1>
+                <span id="current-plan-name" class="plan-name"></span>
+            </div>
+            <div class="header-center">
+                <div class="timeline-control">
+                    <button id="timeline-prev" class="btn btn-icon" title="Previous Month">◀</button>
+                    <span id="timeline-month" class="month-display">May</span>
+                    <input type="range" id="timeline-slider" min="0" max="11" value="4">
+                    <button id="timeline-next" class="btn btn-icon" title="Next Month">▶</button>
+                </div>
+            </div>
+            <div class="header-right">
+                <span id="user-display"></span>
+                <button id="btn-admin" class="btn btn-secondary hidden">Manage Users</button>
+                <button id="btn-password" class="btn btn-secondary">Change Password</button>
+                <button id="btn-logout" class="btn btn-secondary">Logout</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="app-main">
+            <!-- Left Sidebar: Plant Palette -->
+            <aside class="sidebar sidebar-left">
+                <div class="sidebar-header">
+                    <div class="sidebar-header-row">
+                        <h2>Plants</h2>
+                        <button id="btn-manage-plants" class="btn btn-icon" title="Manage Plants">⚙️</button>
+                    </div>
+                    <div class="search-wrapper">
+                        <input type="text" id="plant-search" placeholder="Search plants...">
+                        <button id="search-clear" class="btn-clear hidden">×</button>
+                    </div>
+                </div>
+                <div id="plant-palette" class="plant-palette"></div>
+            </aside>
+
+            <!-- Center: Garden Area -->
+            <section class="garden-section">
+                <div class="garden-toolbar">
+                    <div class="toolbar-group">
+                        <button id="btn-add-bed" class="btn btn-primary">+ Add Bed</button>
+                        <button id="btn-undo" class="btn btn-secondary" title="Undo (Ctrl+Z)">↶ Undo</button>
+                        <button id="btn-save" class="btn btn-secondary">Save</button>
+                        <button id="btn-load" class="btn btn-secondary">Load</button>
+                        <button id="btn-summary" class="btn btn-secondary">📋 Summary</button>
+                        <button id="btn-stats" class="btn btn-secondary">📊 Stats</button>
+                        <button id="btn-rotation" class="btn btn-secondary">🔄 Rotation</button>
+                    </div>
+                    <div class="toolbar-group">
+                        <button id="toggle-sfg" class="toggle-btn">📐 Square Foot</button>
+                        <button id="toggle-borders" class="toggle-btn">🔲 Border Mode</button>
+                    </div>
+                </div>
+                <div id="garden-area" class="garden-area"></div>
+            </section>
+
+            <!-- Right Sidebar: Plant Details -->
+            <aside class="sidebar sidebar-right hidden" id="plant-details">
+                <div class="sidebar-header">
+                    <h2>Plant Details</h2>
+                    <button id="close-details" class="btn-close">×</button>
+                </div>
+                <div id="details-content"></div>
+            </aside>
+        </main>
+
+        <!-- Toast Container -->
+        <div id="toast-container"></div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <!-- Add Bed Modal -->
+        <div id="modal-add-bed" class="modal hidden">
+            <div class="modal-header">
+                <h3>Add New Bed</h3>
+                <button class="btn-close modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="bed-name">Bed Name</label>
+                    <input type="text" id="bed-name" placeholder="Raised Bed 1">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bed-width">Width (cells)</label>
+                        <input type="number" id="bed-width" value="4" min="1" max="20">
+                    </div>
+                    <div class="form-group">
+                        <label for="bed-height">Height (cells)</label>
+                        <input type="number" id="bed-height" value="2" min="1" max="20">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="bed-cell-size">Cell Size (cm)</label>
+                    <input type="number" id="bed-cell-size" value="30" min="10" max="100" step="5">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-close">Cancel</button>
+                <button id="btn-confirm-add-bed" class="btn btn-primary">Add Bed</button>
+            </div>
+        </div>
+
+        <!-- Resize Bed Modal -->
+        <div id="modal-resize-bed" class="modal hidden">
+            <div class="modal-header">
+                <h3>Resize Bed</h3>
+                <button class="btn-close modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="resize-width">Width (cells)</label>
+                        <input type="number" id="resize-width" min="1" max="20">
+                    </div>
+                    <div class="form-group">
+                        <label for="resize-height">Height (cells)</label>
+                        <input type="number" id="resize-height" min="1" max="20">
+                    </div>
+                </div>
+                <p id="resize-warning" class="warning hidden">⚠️ Some plants will be removed.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-close">Cancel</button>
+                <button id="btn-confirm-resize" class="btn btn-primary">Resize</button>
+            </div>
+        </div>
+
+        <!-- Plant Edit Modal -->
+        <div id="modal-plant-edit" class="modal hidden">
+            <div class="modal-header">
+                <h3>Edit Plant</h3>
+                <button class="btn-close modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="plant-variety">Variety</label>
+                    <input type="text" id="plant-variety" placeholder="e.g. Roma, Cherry">
+                </div>
+                <div class="form-group">
+                    <label>Active Months</label>
+                    <div id="month-toggles" class="month-grid">
+                        <button type="button" class="month-toggle" data-month="0">Jan</button>
+                        <button type="button" class="month-toggle" data-month="1">Feb</button>
+                        <button type="button" class="month-toggle" data-month="2">Mar</button>
+                        <button type="button" class="month-toggle" data-month="3">Apr</button>
+                        <button type="button" class="month-toggle" data-month="4">May</button>
+                        <button type="button" class="month-toggle" data-month="5">Jun</button>
+                        <button type="button" class="month-toggle" data-month="6">Jul</button>
+                        <button type="button" class="month-toggle" data-month="7">Aug</button>
+                        <button type="button" class="month-toggle" data-month="8">Sep</button>
+                        <button type="button" class="month-toggle" data-month="9">Oct</button>
+                        <button type="button" class="month-toggle" data-month="10">Nov</button>
+                        <button type="button" class="month-toggle" data-month="11">Dec</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-remove-plant" class="btn btn-danger">Remove Plant</button>
+                <button class="btn btn-secondary modal-close">Cancel</button>
+                <button id="btn-save-plant" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+
+        <!-- Plans Modal -->
+        <div id="modal-plans" class="modal hidden">
+            <div class="modal-header">
+                <h3>Garden Plans</h3>
+                <button class="btn-close modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="plans-list" class="plans-list"></div>
+                <div class="form-group">
+                    <label for="new-plan-name">New Plan Name</label>
+                    <input type="text" id="new-plan-name" placeholder="Spring 2024">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-close">Cancel</button>
+                <button id="btn-save-as-plan" class="btn btn-primary">Save As New Plan</button>
+            </div>
+        </div>
+
+        <!-- Summary Modal -->
+        <div id="modal-summary" class="modal hidden">
+            <div class="modal-header">
+                <h3>📋 Garden Summary</h3>
+                <button class="btn-close modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="summary-content" class="summary-content"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-close">Close</button>
+            </div>
+        </div>
+
+        <!-- Plant Management Modal -->
+        <div id="modal-manage-plants" class="modal modal-wide hidden">
+            <div class="modal-header">
+                <h3>⚙️ Manage Plants</h3>
+                <button class="btn-close modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="manage-plants-layout">
+                    <!-- Plant List -->
+                    <div class="plant-list-section">
+                        <div class="section-header">
+                            <h4>Plant Library</h4>
+                            <button id="btn-add-new-plant" class="btn btn-primary btn-sm">+ Add New</button>
+                        </div>
+                        <div id="manage-plant-list" class="manage-plant-list"></div>
+                    </div>
+                    <!-- Plant Form -->
+                    <div id="plant-form-section" class="plant-form-section hidden">
+                        <h4 id="plant-form-title">Add New Plant</h4>
+                        <form id="plant-form">
+                            <input type="hidden" id="edit-plant-id">
+                            <div class="form-group">
+                                <label for="plant-label">Name *</label>
+                                <input type="text" id="plant-label" required placeholder="e.g. Tomato">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="plant-family">Family</label>
+                                    <input type="text" id="plant-family" placeholder="e.g. Solanaceae">
+                                </div>
+                                <div class="form-group">
+                                    <label for="plant-perSquare">Per Square</label>
+                                    <input type="number" id="plant-perSquare" min="1" max="16" placeholder="4">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Plant Icon</label>
+                                <div class="icon-upload-area">
+                                    <div id="icon-preview" class="icon-preview">
+                                        <span class="icon-preview-placeholder">🌱</span>
+                                    </div>
+                                    <div class="icon-upload-controls">
+                                        <label for="plant-icon-file" class="btn btn-secondary btn-sm">
+                                            📁 Choose SVG
+                                        </label>
+                                        <input type="file" id="plant-icon-file" accept=".svg" class="hidden">
+                                        <input type="text" id="plant-icon" placeholder="filename.svg" readonly>
+                                        <span id="icon-upload-status" class="icon-upload-status"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="plant-companions">Companions (comma separated)</label>
+                                <input type="text" id="plant-companions" placeholder="basil, carrot, parsley">
+                            </div>
+                            <div class="form-group">
+                                <label for="plant-antagonists">Antagonists (comma separated)</label>
+                                <input type="text" id="plant-antagonists" placeholder="fennel, cabbage">
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" id="btn-cancel-plant" class="btn btn-secondary">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Save Plant</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cell Edit Modal (Succession Planting) -->
+        <div id="modal-cell-edit" class="modal modal-wide hidden">
+            <div class="modal-header">
+                <h3>🌱 Edit Cell Plantings</h3>
+                <button class="btn-close modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="cell-edit-layout">
+                    <!-- Current Plantings List -->
+                    <div class="cell-plantings-section">
+                        <h4>Current Plantings</h4>
+                        <div id="cell-plantings-list" class="cell-plantings-list">
+                            <div class="summary-empty">No plantings yet</div>
+                        </div>
+                    </div>
+                    <!-- Add New Planting -->
+                    <div class="cell-add-section">
+                        <h4>Add Follow-up Planting</h4>
+                        <div class="form-group">
+                            <label for="cell-plant-select">Plant</label>
+                            <select id="cell-plant-select">
+                                <option value="">Choose a plant...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Active Months</label>
+                            <div id="cell-months-grid" class="months-grid">
+                            </div>
+                        </div>
+                        <div id="cell-overlap-warning" class="overlap-warning hidden">
+                            ⚠️ <span id="cell-overlap-text"></span>
+                        </div>
+                        <div class="form-group">
+                            <label for="cell-variety">Variety (optional)</label>
+                            <input type="text" id="cell-variety" placeholder="e.g. Roma, Cherry">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" id="btn-add-planting" class="btn btn-primary">Add Planting</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-clear-cell" class="btn btn-danger">Clear All</button>
+                <button class="btn btn-secondary modal-close">Done</button>
+            </div>
+        </div>
+
+        <!-- Garden Stats Modal -->
+        <div id="modal-stats" class="modal modal-wide hidden">
+            <div class="modal-header">
+                <h3>📊 Garden Statistics</h3>
+                <button class="btn-close modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="stats-content">Loading...</div>
+            </div>
+        </div>
+
+        <!-- Bed Notes Modal -->
+        <div id="modal-notes" class="modal hidden">
+            <div class="modal-header">
+                <h3>📝 Bed Notes</h3>
+                <button class="btn-close modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="bed-notes-text">Notes for <span id="notes-bed-name"></span></label>
+                    <textarea id="bed-notes-text" rows="8" placeholder="Add notes about this bed (e.g., soil amendments, observations, planting dates)..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-save-notes" class="btn btn-primary">Save Notes</button>
+                <button class="btn btn-secondary modal-close">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Crop Rotation Modal -->
+        <div id="modal-rotation" class="modal modal-wide hidden">
+            <div class="modal-header">
+                <h3>🔄 Crop Rotation Analysis</h3>
+                <button class="btn-close modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="rotation-content">Loading...</div>
+            </div>
+        </div>
+
+        <!-- Change Password Modal -->
+        <div id="modal-password" class="modal hidden">
+            <div class="modal-header">
+                <h3>🔐 Change Password</h3>
+                <button class="btn-close modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="current-password">Current Password</label>
+                    <input type="password" id="current-password" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-password">New Password</label>
+                    <input type="password" id="new-password" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirm-new-password">Confirm New Password</label>
+                    <input type="password" id="confirm-new-password" required>
+                </div>
+                <div id="password-error" class="error-message"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-close">Cancel</button>
+                <button id="btn-confirm-password" class="btn btn-primary">Update Password</button>
+            </div>
+        </div>
+
+        <!-- Admin Panel Modal -->
+        <div id="modal-admin" class="modal modal-wide hidden">
+            <div class="modal-header">
+                <h3>👥 Manage Users</h3>
+                <button class="btn-close modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="admin-user-list" class="admin-user-list"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-close">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/state.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/plants.js"></script>
+    <script src="/js/borders.js"></script>
+    <script src="/js/garden.js"></script>
+    <script src="/js/timeline.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+
+</html>
