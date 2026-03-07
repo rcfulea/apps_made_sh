@@ -339,38 +339,41 @@
                 <button class="btn-close modal-close">×</button>
             </div>
             <div class="modal-body">
-                <div class="cell-edit-layout">
-                    <!-- Current Plantings List -->
-                    <div class="cell-plantings-section">
-                        <h4>Current Plantings</h4>
-                        <div id="cell-plantings-list" class="cell-plantings-list">
-                            <div class="summary-empty">No plantings yet</div>
+                <!-- Current Plantings (full-width, expanded) -->
+                <div id="cell-plantings-list" class="cell-plantings-list">
+                    <div class="summary-empty">No plantings yet</div>
+                </div>
+
+                <!-- Succession Planting Toggle -->
+                <div class="succession-toggle-area">
+                    <button id="btn-toggle-succession" class="btn btn-secondary succession-toggle-btn">
+                        🔄 Add Succession Planting
+                    </button>
+                </div>
+
+                <!-- Add New Planting (hidden by default) -->
+                <div id="cell-add-section" class="cell-add-section hidden">
+                    <h4>➕ Add Follow-up Planting</h4>
+                    <div class="form-group">
+                        <label for="cell-plant-select">Plant</label>
+                        <select id="cell-plant-select">
+                            <option value="">Choose a plant...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Active Months</label>
+                        <div id="cell-months-grid" class="months-grid">
                         </div>
                     </div>
-                    <!-- Add New Planting -->
-                    <div class="cell-add-section">
-                        <h4>Add Follow-up Planting</h4>
-                        <div class="form-group">
-                            <label for="cell-plant-select">Plant</label>
-                            <select id="cell-plant-select">
-                                <option value="">Choose a plant...</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Active Months</label>
-                            <div id="cell-months-grid" class="months-grid">
-                            </div>
-                        </div>
-                        <div id="cell-overlap-warning" class="overlap-warning hidden">
-                            ⚠️ <span id="cell-overlap-text"></span>
-                        </div>
-                        <div class="form-group">
-                            <label for="cell-variety">Variety (optional)</label>
-                            <input type="text" id="cell-variety" placeholder="e.g. Roma, Cherry">
-                        </div>
-                        <div class="form-actions">
-                            <button type="button" id="btn-add-planting" class="btn btn-primary">Add Planting</button>
-                        </div>
+                    <div id="cell-overlap-warning" class="overlap-warning hidden">
+                        ⚠️ <span id="cell-overlap-text"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="cell-variety">Variety (optional)</label>
+                        <input type="text" id="cell-variety" placeholder="e.g. Roma, Cherry">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="btn-add-planting" class="btn btn-primary">Add Planting</button>
                     </div>
                 </div>
             </div>

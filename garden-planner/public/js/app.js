@@ -1017,6 +1017,15 @@ const App = (() => {
         document.getElementById('cell-variety').value = '';
         document.getElementById('cell-overlap-warning').classList.add('hidden');
 
+        // Reset succession toggle
+        const addSection = document.getElementById('cell-add-section');
+        const toggleBtn = document.getElementById('btn-toggle-succession');
+        if (addSection) addSection.classList.add('hidden');
+        if (toggleBtn) {
+            toggleBtn.classList.remove('active');
+            toggleBtn.textContent = '🔄 Add Succession Planting';
+        }
+
         // Open modal
         openModal('modal-cell-edit');
     }
@@ -1244,6 +1253,21 @@ const App = (() => {
                 renderCellPlantings(cellEditBedId, cellEditCellIndex);
                 buildMonthGrid(cellEditBedId, cellEditCellIndex);
                 showToast('Cell cleared', 'info');
+            }
+        });
+
+        // Succession planting toggle
+        document.getElementById('btn-toggle-succession')?.addEventListener('click', () => {
+            const addSection = document.getElementById('cell-add-section');
+            const toggleBtn = document.getElementById('btn-toggle-succession');
+            if (addSection.classList.contains('hidden')) {
+                addSection.classList.remove('hidden');
+                toggleBtn.classList.add('active');
+                toggleBtn.textContent = '🔄 Hide Succession Planting';
+            } else {
+                addSection.classList.add('hidden');
+                toggleBtn.classList.remove('active');
+                toggleBtn.textContent = '🔄 Add Succession Planting';
             }
         });
     }
