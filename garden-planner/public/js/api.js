@@ -155,6 +155,27 @@ const API = (() => {
         });
     }
 
+    // ==========================================
+    // Journal Endpoints
+    // ==========================================
+
+    async function getJournal() {
+        return request('/journal');
+    }
+
+    async function addJournalEntry(title, content, category) {
+        return request('/journal', {
+            method: 'POST',
+            body: { title, content, category },
+        });
+    }
+
+    async function deleteJournalEntry(entryId) {
+        return request(`/journal/${encodeURIComponent(entryId)}`, {
+            method: 'DELETE',
+        });
+    }
+
     // Public API
     return {
         checkSetupRequired,
@@ -181,6 +202,10 @@ const API = (() => {
         getUsers,
         deleteUser,
         toggleUserAdmin,
+
+        getJournal,
+        addJournalEntry,
+        deleteJournalEntry,
     };
 
     // ==========================================

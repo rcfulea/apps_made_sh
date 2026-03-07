@@ -17,6 +17,7 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const GARDENS_FILE = path.join(DATA_DIR, 'gardens.json');
 const PLANTS_FILE = path.join(DATA_DIR, 'plants.json');
+const JOURNAL_FILE = path.join(DATA_DIR, 'journal.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
@@ -535,6 +536,46 @@ function handleAPI(req, res) {
                 users = users.filter(u => u.username !== username);
                 saveUsers();
 
+                return sendJSON({ success: true });
+            }
+
+            // ==========================================
+            // Journal Routes
+            // ==========================================
+
+            if (pathname === '/api/journal' && method === 'GET') {
+                const allJournals = loadJSON(JOURNAL_FILE, {});
+                const userEntries = allJournals[session.username] || [];
+                return sendJSON({ entries: userEntries });
+            }
+
+            if (pathname === '/api/journal' && method === 'POST') {
+                const { title, content, category } = body;
+                if (!content) return sendError('Content is required', 400);
+
+                const allJournals = loadJSON(JOURNAL_FILE, {});
+                if (!allJournals[session.username]) allJournals[session.username] = [];
+
+                const entry = {
+                    id: Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5),
+                    date: new Date().toISOString(),
+                    title: title || '',
+                    content,
+                    category: category || 'general',
+                };
+
+                allJournals[session.username].unshift(entry);
+                saveJSON(JOURNAL_FILE, allJournals);
+                return sendJSON({ success: true, entry });
+            }
+
+            if (pathname.startsWith('/api/journal/') && method === 'DELETE') {
+                const entryId = decodeURIComponent(pathname.split('/api/journal/')[1]);
+                const allJournals = loadJSON(JOURNAL_FILE, {});
+                const userEntries = allJournals[session.username] || [];
+
+                allJournals[session.username] = userEntries.filter(e => e.id !== entryId);
+                saveJSON(JOURNAL_FILE, allJournals);
                 return sendJSON({ success: true });
             }
 

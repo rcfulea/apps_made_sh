@@ -59,6 +59,7 @@ const App = (() => {
         setupCompanionHighlights();
         setupNotesHandlers();
         setupStatsAndRotationHandlers();
+        setupJournalHandlers();
     }
 
     // ==========================================
@@ -1499,6 +1500,113 @@ const App = (() => {
     function setupStatsAndRotationHandlers() {
         document.getElementById('btn-stats')?.addEventListener('click', generateStats);
         document.getElementById('btn-rotation')?.addEventListener('click', analyzeCropRotation);
+    }
+
+    // ==========================================
+    // Garden Journal
+    // ==========================================
+
+    const CATEGORY_ICONS = {
+        general: '📝', observation: '👁️', planting: '🌱',
+        harvest: '🥕', pest: '🐛', weather: '🌤️',
+        task: '✅', amendment: '🧪'
+    };
+
+    async function openJournal() {
+        const container = document.getElementById('journal-entries');
+        container.innerHTML = '<p style="text-align:center;">Loading entries...</p>';
+        openModal('modal-journal');
+
+        try {
+            const data = await API.getJournal();
+            renderJournalEntries(data.entries || []);
+        } catch (error) {
+            container.innerHTML = `<p style="color:red;">Failed to load journal: ${error.message}</p>`;
+        }
+    }
+
+    function renderJournalEntries(entries) {
+        const container = document.getElementById('journal-entries');
+
+        if (entries.length === 0) {
+            container.innerHTML = '<div class="summary-empty" style="margin-top:16px;">No journal entries yet. Start by adding your first entry above!</div>';
+            return;
+        }
+
+        container.innerHTML = entries.map(entry => {
+            const date = new Date(entry.date);
+            const dateStr = date.toLocaleDateString('en-GB', {
+                weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+            });
+            const timeStr = date.toLocaleTimeString('en-GB', {
+                hour: '2-digit', minute: '2-digit'
+            });
+            const icon = CATEGORY_ICONS[entry.category] || '📝';
+            const categoryLabel = entry.category ? entry.category.charAt(0).toUpperCase() + entry.category.slice(1) : 'General';
+
+            return `
+                <div class="journal-entry">
+                    <div class="journal-entry-header">
+                        <div class="journal-entry-meta">
+                            <span class="journal-category-badge" data-category="${entry.category}">${icon} ${categoryLabel}</span>
+                            <span class="journal-date">${dateStr} at ${timeStr}</span>
+                        </div>
+                        <button class="btn btn-danger btn-sm btn-delete-entry" data-id="${entry.id}" title="Delete entry">×</button>
+                    </div>
+                    ${entry.title ? `<div class="journal-entry-title">${escapeHtml(entry.title)}</div>` : ''}
+                    <div class="journal-entry-content">${escapeHtml(entry.content).replace(/\n/g, '<br>')}</div>
+                </div>
+            `;
+        }).join('');
+
+        // Delete handlers
+        container.querySelectorAll('.btn-delete-entry').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!confirm('Delete this journal entry?')) return;
+                try {
+                    await API.deleteJournalEntry(btn.dataset.id);
+                    showToast('Entry deleted', 'info');
+                    openJournal(); // Refresh
+                } catch (error) {
+                    showToast('Failed to delete: ' + error.message, 'error');
+                }
+            });
+        });
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function setupJournalHandlers() {
+        document.getElementById('btn-journal')?.addEventListener('click', openJournal);
+
+        document.getElementById('btn-add-journal')?.addEventListener('click', async () => {
+            const title = document.getElementById('journal-title').value.trim();
+            const content = document.getElementById('journal-content').value.trim();
+            const category = document.getElementById('journal-category').value;
+
+            if (!content) {
+                showToast('Please write something in your journal entry', 'error');
+                return;
+            }
+
+            try {
+                await API.addJournalEntry(title, content, category);
+                // Clear form
+                document.getElementById('journal-title').value = '';
+                document.getElementById('journal-content').value = '';
+                document.getElementById('journal-category').value = 'general';
+                showToast('Journal entry added!', 'success');
+                // Refresh entries
+                const data = await API.getJournal();
+                renderJournalEntries(data.entries || []);
+            } catch (error) {
+                showToast('Failed to add entry: ' + error.message, 'error');
+            }
+        });
     }
 
     // ==========================================
