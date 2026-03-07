@@ -1,0 +1,19 @@
+services:
+  seeds-dashboard:
+    build: .
+    container_name: seeds-dashboard
+    ports:
+      - "3000:3000"
+    volumes:
+      # Persist plant data
+      - seeds-data:/app/data
+      # Persist uploaded images
+      - seeds-uploads:/app/public/uploads
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+
+volumes:
+  seeds-data:
+  seeds-uploads:
