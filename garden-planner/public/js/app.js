@@ -367,6 +367,12 @@ const App = (() => {
 
         const beds = State.getProperty('beds') || [];
         const plants = State.getProperty('plants') || [];
+        const borderedOnly = document.getElementById('summary-bordered-only')?.checked || false;
+
+        // Helper: check if a cell has any borders
+        function cellHasBorder(bedId, cellIndex) {
+            return ['top','right','bottom','left'].some(side => State.hasBorder(bedId, cellIndex, side));
+        }
 
         // Collect all plants across all beds
         const plantCounts = {};
@@ -375,7 +381,10 @@ const App = (() => {
         let totalPlantsWithSFG = 0;
 
         beds.forEach(bed => {
-            bed.cells.forEach(cell => {
+            bed.cells.forEach((cell, cellIdx) => {
+                // If bordered-only mode, skip cells without borders
+                if (borderedOnly && !cellHasBorder(bed.id, cellIdx)) return;
+
                 totalCells++;
                 if (cell && cell.plantings) {
                     cell.plantings.forEach(planting => {
@@ -431,6 +440,16 @@ const App = (() => {
 
         // Build HTML
         let html = '';
+
+        // Bordered-only toggle
+        html += `
+            <div style="margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;">
+                    <input type="checkbox" id="summary-bordered-only" ${borderedOnly ? 'checked' : ''}>
+                    Count only bordered cells
+                </label>
+            </div>
+        `;
 
         // Stats section - show both cells and total plants
         html += `
@@ -495,6 +514,11 @@ const App = (() => {
         }
 
         summaryContent.innerHTML = html;
+
+        // Wire up bordered-only toggle to re-generate
+        document.getElementById('summary-bordered-only')?.addEventListener('change', () => {
+            generateSummary();
+        });
     }
 
     // ==========================================
@@ -1086,7 +1110,11 @@ const App = (() => {
                              onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22><text y=%2230%22 font-size=%2224%22>🌱</text></svg>'">
                     </div>
                     <div class="planting-item-info">
-                        <div class="planting-item-name">${plant?.label || p.plantId}${p.variety ? ` (${p.variety})` : ''}</div>
+                        <div class="planting-item-name">${plant?.label || p.plantId}</div>
+                        <div class="planting-item-variety">
+                            <input type="text" class="variety-input" data-idx="${idx}" 
+                                   value="${p.variety || ''}" placeholder="Variety name (optional)">
+                        </div>
                         <div class="planting-item-months-edit">
                             ${MONTH_NAMES_SHORT.map((name, m) => {
                                 const active = months.includes(m);
@@ -1098,6 +1126,19 @@ const App = (() => {
                 </div>
             `;
         }).join('');
+
+        // Variety input handlers — save on blur or enter
+        container.querySelectorAll('.variety-input').forEach(input => {
+            const saveVariety = () => {
+                const idx = parseInt(input.dataset.idx);
+                const newVariety = input.value.trim();
+                State.updatePlantingVariety(bedId, cellIndex, idx, newVariety);
+            };
+            input.addEventListener('blur', saveVariety);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); saveVariety(); input.blur(); }
+            });
+        });
 
         // Month chip toggle handlers — click to add/remove months
         container.querySelectorAll('.month-chip').forEach(chip => {
@@ -1260,10 +1301,18 @@ const App = (() => {
             const otherName = otherPlant.label.toLowerCase();
             const otherId = otherPlant.id.toLowerCase();
 
-            if (companions.includes(otherName) || companions.includes(otherId)) {
+            // Fuzzy match: check if companion name is contained in plant id/label or vice versa
+            const matchesCompanion = companions.some(c => 
+                otherName.includes(c) || otherId.includes(c) || c.includes(otherId) || c.includes(otherName)
+            );
+            const matchesAntagonist = antagonists.some(a => 
+                otherName.includes(a) || otherId.includes(a) || a.includes(otherId) || a.includes(otherName)
+            );
+
+            if (matchesCompanion) {
                 otherCell.classList.add('cell-companion');
             }
-            if (antagonists.includes(otherName) || antagonists.includes(otherId)) {
+            if (matchesAntagonist) {
                 otherCell.classList.add('cell-antagonist');
             }
         });

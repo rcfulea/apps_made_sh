@@ -898,6 +898,27 @@
     transform: scale(1.05);
 }
 
+.planting-item-variety {
+    margin: 2px 0;
+}
+
+.variety-input {
+    width: 100%;
+    padding: 2px 5px;
+    font-size: 11px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-family: inherit;
+    box-sizing: border-box;
+    background: #fafafa;
+}
+
+.variety-input:focus {
+    border-color: var(--color-primary, #4caf50);
+    outline: none;
+    background: white;
+}
+
 .planting-item .btn-danger {
     flex-shrink: 0;
     padding: 2px 8px;

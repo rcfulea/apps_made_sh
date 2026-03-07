@@ -399,6 +399,22 @@ const State = (() => {
     }
 
     /**
+     * Update the variety name of an existing planting
+     */
+    function updatePlantingVariety(bedId, cellIndex, plantingIndex, newVariety) {
+        const bed = getBed(bedId);
+        if (!bed || cellIndex < 0 || cellIndex >= bed.cells.length) return;
+
+        const cell = bed.cells[cellIndex];
+        if (!cell || !cell.plantings || !cell.plantings[plantingIndex]) return;
+
+        cell.plantings[plantingIndex].variety = newVariety;
+
+        emit('cellUpdated', { bedId, cellIndex, cell });
+        emit('bedsChange', state.beds);
+    }
+
+    /**
      * Remove plant from a cell (all plantings)
      */
     function clearCell(bedId, cellIndex) {
@@ -661,6 +677,7 @@ const State = (() => {
         addPlanting,
         removePlanting,
         updatePlantingMonths,
+        updatePlantingVariety,
         clearCell,
         getCell,
         getActivePlanting,
