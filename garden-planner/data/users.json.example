@@ -1,9 +1,0 @@
-{
-  "users": [
-    {
-      "username": "admin",
-      "password": "CHANGE_ME_ON_FIRST_RUN",
-      "isAdmin": true
-    }
-  ]
-}
