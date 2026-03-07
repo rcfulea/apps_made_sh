@@ -280,7 +280,8 @@ const State = (() => {
         // Normalize to array of active months
         let activeMonths;
         if (monthsOrMonth === null) {
-            activeMonths = [state.viewMonth];
+            // Default: all months (plant visible year-round until user customizes)
+            activeMonths = Array.from({length: 12}, (_, i) => i);
         } else if (Array.isArray(monthsOrMonth)) {
             activeMonths = monthsOrMonth;
         } else {
@@ -378,6 +379,23 @@ const State = (() => {
         emit('cellUpdated', { bedId, cellIndex, cell: bed.cells[cellIndex] });
         emit('bedsChange', state.beds);
         saveHistory();
+    }
+
+    /**
+     * Update the active months of an existing planting
+     */
+    function updatePlantingMonths(bedId, cellIndex, plantingIndex, newMonths) {
+        const bed = getBed(bedId);
+        if (!bed || cellIndex < 0 || cellIndex >= bed.cells.length) return;
+
+        const cell = bed.cells[cellIndex];
+        if (!cell || !cell.plantings || !cell.plantings[plantingIndex]) return;
+
+        saveHistory();
+        cell.plantings[plantingIndex].activeMonths = newMonths;
+
+        emit('cellUpdated', { bedId, cellIndex, cell });
+        emit('bedsChange', state.beds);
     }
 
     /**
@@ -642,6 +660,7 @@ const State = (() => {
         placeCell,
         addPlanting,
         removePlanting,
+        updatePlantingMonths,
         clearCell,
         getCell,
         getActivePlanting,

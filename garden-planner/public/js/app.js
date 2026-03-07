@@ -1076,9 +1076,9 @@ const App = (() => {
 
         container.innerHTML = allPlantings.map((p, idx) => {
             const plant = Plants.getPlant(p.plantId);
-            const monthStr = (p.activeMonths || []).map(m => MONTH_NAMES_SHORT[m]).join(', ') || 'All months';
+            const months = p.activeMonths || [];
             return `
-                <div class="planting-item">
+                <div class="planting-item" data-planting-index="${idx}">
                     <div class="planting-item-icon">
                         <img src="icons/${plant?.file || p.plantId + '.svg'}" 
                              alt="${plant?.label || p.plantId}"
@@ -1086,12 +1086,53 @@ const App = (() => {
                     </div>
                     <div class="planting-item-info">
                         <div class="planting-item-name">${plant?.label || p.plantId}${p.variety ? ` (${p.variety})` : ''}</div>
-                        <div class="planting-item-months">📅 ${monthStr}</div>
+                        <div class="planting-item-months-edit">
+                            ${MONTH_NAMES_SHORT.map((name, m) => {
+                                const active = months.includes(m);
+                                return `<span class="month-chip ${active ? 'active' : ''}" data-month="${m}" data-idx="${idx}">${name}</span>`;
+                            }).join('')}
+                        </div>
                     </div>
-                    <button class="btn btn-danger btn-remove-planting" data-index="${idx}">Remove</button>
+                    <button class="btn btn-danger btn-remove-planting" data-index="${idx}">×</button>
                 </div>
             `;
         }).join('');
+
+        // Month chip toggle handlers — click to add/remove months
+        container.querySelectorAll('.month-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const monthNum = parseInt(chip.dataset.month);
+                const plantingIdx = parseInt(chip.dataset.idx);
+                const planting = allPlantings[plantingIdx];
+                if (!planting) return;
+
+                let newMonths = [...(planting.activeMonths || [])];
+                if (newMonths.includes(monthNum)) {
+                    // Don't allow removing the last month
+                    if (newMonths.length <= 1) {
+                        showToast('Cannot remove the last month — remove the planting instead', 'error');
+                        return;
+                    }
+                    newMonths = newMonths.filter(m => m !== monthNum);
+                } else {
+                    // Check overlap with OTHER plantings
+                    const otherPlantings = allPlantings.filter((_, i) => i !== plantingIdx);
+                    const conflict = otherPlantings.find(op => (op.activeMonths || []).includes(monthNum));
+                    if (conflict) {
+                        const conflictPlant = Plants.getPlant(conflict.plantId);
+                        showToast(`${MONTH_NAMES_SHORT[monthNum]} is used by ${conflictPlant?.label || conflict.plantId}`, 'error');
+                        return;
+                    }
+                    newMonths.push(monthNum);
+                    newMonths.sort((a, b) => a - b);
+                }
+
+                // Update the planting months
+                State.updatePlantingMonths(bedId, cellIndex, plantingIdx, newMonths);
+                renderCellPlantings(bedId, cellIndex);
+                buildMonthGrid(bedId, cellIndex);
+            });
+        });
 
         // Delete handlers
         container.querySelectorAll('.btn-remove-planting').forEach(btn => {
