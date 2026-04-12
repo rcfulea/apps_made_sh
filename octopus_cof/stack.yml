@@ -3,7 +3,7 @@ version: '3.8'
 services:
   octopus-voucher:
     build:
-      context: .
+      context: octopus_cof
       dockerfile: Dockerfile
     image: octopus-voucher:latest
     restart: unless-stopped
