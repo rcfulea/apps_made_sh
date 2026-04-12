@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  octopus-voucher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: octopus-voucher:latest
+    restart: unless-stopped
+    environment:
+      - OCTOPUS_EMAIL=${OCTOPUS_EMAIL}
+      - OCTOPUS_PASSWORD=${OCTOPUS_PASSWORD}
+      - OCTOPUS_ACCOUNT_NUMBER=${OCTOPUS_ACCOUNT_NUMBER}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - POLL_INTERVAL=${POLL_INTERVAL:-300}
+      - LOG_DIR=/app/logs
+    volumes:
+      - octopus_logs:/app/logs
+    # Chromium needs extra shared memory to run stably
+    shm_size: '256mb'
+    # Allow Chromium's sandbox to work inside Docker
+    security_opt:
+      - seccomp:unconfined
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  octopus_logs:
+    driver: local
