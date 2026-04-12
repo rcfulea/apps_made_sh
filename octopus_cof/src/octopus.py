@@ -39,9 +39,20 @@ class OctopusClient:
         page = self.session.page
         logger.info(f"Navigating to offer group page...")
         page.goto(self._offer_url, wait_until="domcontentloaded", timeout=60_000)
-        # Wait for at least one offer button to appear before reading the page
-        page.wait_for_selector("button", timeout=30_000)
-        page.wait_for_timeout(2000)
+
+        # Verify we actually landed on the right page (not a login redirect)
+        if "/login" in page.url or "/accounts" not in page.url:
+            logger.warning(f"Unexpected redirect to {page.url} — session may have expired")
+            return None
+
+        # Wait for offer buttons to appear; if they don't, page failed to render
+        try:
+            page.wait_for_selector('[data-testid="offer-card"]', timeout=20_000)
+        except Exception:
+            logger.warning("Offer cards did not appear within 20s — page may not have rendered")
+            return None
+
+        page.wait_for_timeout(1000)
 
         # Find all offer cards — each card has an h3 + a button
         # Structure: h3 (offer name) + button (claim / more codes tomorrow)
