@@ -43,6 +43,12 @@ class BrowserSession:
     def _login(self):
         logger.info("Logging into Octopus Energy...")
         self.page.goto(LOGIN_URL, wait_until="domcontentloaded", timeout=60_000)
+
+        # If already logged in, Octopus redirects straight to the dashboard
+        if DASHBOARD_URL in self.page.url:
+            logger.info(f"Already logged in. Current URL: {self.page.url}")
+            return
+
         # Wait explicitly for the form to be ready before filling
         self.page.wait_for_selector('input[type="email"]', timeout=60_000)
         self.page.fill('input[type="email"]', self.email)
