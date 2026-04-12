@@ -44,13 +44,18 @@ class BrowserSession:
         logger.info("Logging into Octopus Energy...")
         self.page.goto(LOGIN_URL, wait_until="domcontentloaded", timeout=60_000)
 
-        # If already logged in, Octopus redirects straight to the dashboard
-        if DASHBOARD_URL in self.page.url:
+        # Session may still be valid — Octopus redirects to dashboard via JS after
+        # domcontentloaded, so we can't rely on the URL immediately after goto().
+        # Try waiting for the login form; if it doesn't appear, we're being redirected.
+        try:
+            self.page.wait_for_selector('input[type="email"]', timeout=10_000)
+        except Exception:
+            # No login form — wait for the dashboard redirect to complete
+            if DASHBOARD_URL not in self.page.url:
+                self.page.wait_for_url(f"{DASHBOARD_URL}**", timeout=30_000)
             logger.info(f"Already logged in. Current URL: {self.page.url}")
             return
 
-        # Wait explicitly for the form to be ready before filling
-        self.page.wait_for_selector('input[type="email"]', timeout=60_000)
         self.page.fill('input[type="email"]', self.email)
         self.page.fill('input[type="password"]', self.password)
         self.page.click('button[type="submit"]')
