@@ -148,7 +148,7 @@ function App() {
 
   const handleArchiveToggle = async (plant: Plant) => {
     try {
-      const updated = await updatePlant({ ...plant, archived: !plant.archived });
+      const updated = await updatePlant(plant.id, { archived: !plant.archived });
       setPlants(prev => prev.map(p => p.id === updated.id ? updated : p));
       setSelectedPlant(null);
     } catch (error) {
