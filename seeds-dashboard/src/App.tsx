@@ -7,6 +7,7 @@ import { FilterPanel } from './components/FilterPanel';
 import { PlantGrid } from './components/PlantGrid';
 import { PlantModal } from './components/PlantModal';
 import { AddPlantModal } from './components/AddPlantModal';
+import { StatsModal } from './components/StatsModal';
 import './App.css';
 
 const initialFilters: FilterState = {
@@ -31,6 +32,7 @@ function App() {
     return saved ? JSON.parse(saved) : window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
   // Load plants from API
   const loadPlants = useCallback(async () => {
@@ -61,6 +63,7 @@ function App() {
         setSelectedPlant(null);
         setShowAddModal(false);
         setEditingPlant(null);
+        setShowStats(false);
       }
     };
     window.addEventListener('keydown', handleEsc);
@@ -183,6 +186,15 @@ function App() {
           <div className="main-area">
             <div className="toolbar">
               <button
+                className="stats-btn"
+                onClick={() => setShowStats(true)}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 20V10M12 20V4M6 20v-6" />
+                </svg>
+                Stats
+              </button>
+              <button
                 className="filter-toggle-btn"
                 onClick={() => setShowFilters(!showFilters)}
               >
@@ -217,6 +229,13 @@ function App() {
           </div>
         </div>
       </main>
+
+      {showStats && (
+        <StatsModal
+          plants={plants}
+          onClose={() => setShowStats(false)}
+        />
+      )}
 
       {selectedPlant && (
         <PlantModal
