@@ -54,6 +54,11 @@
     cursor: pointer;
     font-size: 0.9rem;
     color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.filter-toggle-label:last-child {
+    margin-bottom: 0;
 }
 
 .filter-toggle-label input {
