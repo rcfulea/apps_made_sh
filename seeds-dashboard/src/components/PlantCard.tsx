@@ -23,6 +23,9 @@ export function PlantCard({ plant, onClick }: PlantCardProps) {
                 {plant.thisYear && (
                     <span className="plant-card-badge badge-this-year">This Year</span>
                 )}
+                {plant.archived && (
+                    <span className="plant-card-badge badge-archived">Archived</span>
+                )}
             </div>
             <div className="plant-card-content">
                 <h3 className="plant-card-title">{plant.name}</h3>

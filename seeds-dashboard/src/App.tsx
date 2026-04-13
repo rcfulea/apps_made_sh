@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { Plant, FilterState } from './data/types';
-import { fetchPlants } from './utils/api';
+import { fetchPlants, updatePlant } from './utils/api';
 import { Header } from './components/Header';
 import { SearchBar } from './components/SearchBar';
 import { FilterPanel } from './components/FilterPanel';
@@ -16,6 +16,7 @@ const initialFilters: FilterState = {
   sowingMonths: [],
   harvestMonths: [],
   thisYearOnly: false,
+  showArchived: false,
 };
 
 function App() {
@@ -68,6 +69,10 @@ function App() {
 
   const filteredPlants = useMemo(() => {
     return plants.filter((plant) => {
+      // Archive filter
+      if (!filters.showArchived && plant.archived) return false;
+      if (filters.showArchived && !plant.archived) return false;
+
       // Search filter
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
@@ -141,6 +146,17 @@ function App() {
     setEditingPlant(plant);
   };
 
+  const handleArchiveToggle = async (plant: Plant) => {
+    try {
+      const updated = await updatePlant({ ...plant, archived: !plant.archived });
+      setPlants(prev => prev.map(p => p.id === updated.id ? updated : p));
+      setSelectedPlant(null);
+    } catch (error) {
+      console.error('Failed to archive plant:', error);
+      alert('Failed to update plant');
+    }
+  };
+
   return (
     <div className="app">
       <Header
@@ -208,6 +224,7 @@ function App() {
           onClose={() => setSelectedPlant(null)}
           onEdit={handleEditPlant}
           onDelete={handlePlantDeleted}
+          onArchive={handleArchiveToggle}
         />
       )}
 

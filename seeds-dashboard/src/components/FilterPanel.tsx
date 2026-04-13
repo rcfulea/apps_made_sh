@@ -32,11 +32,16 @@ export function FilterPanel({ filters, onFilterChange, onReset }: FilterPanelPro
         onFilterChange({ ...filters, thisYearOnly: !filters.thisYearOnly });
     };
 
+    const handleShowArchivedToggle = () => {
+        onFilterChange({ ...filters, showArchived: !filters.showArchived });
+    };
+
     const hasActiveFilters = filters.types.length > 0 ||
         filters.edible !== 'all' ||
         filters.sowingMonths.length > 0 ||
         filters.harvestMonths.length > 0 ||
-        filters.thisYearOnly;
+        filters.thisYearOnly ||
+        filters.showArchived;
 
     return (
         <div className="filter-panel">
@@ -58,6 +63,15 @@ export function FilterPanel({ filters, onFilterChange, onReset }: FilterPanelPro
                     />
                     <span className="toggle-switch"></span>
                     <span>This Year Only</span>
+                </label>
+                <label className="filter-toggle-label">
+                    <input
+                        type="checkbox"
+                        checked={filters.showArchived}
+                        onChange={handleShowArchivedToggle}
+                    />
+                    <span className="toggle-switch"></span>
+                    <span>Show Archived</span>
                 </label>
             </div>
 

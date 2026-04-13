@@ -49,6 +49,14 @@
   color: white;
 }
 
+.badge-archived {
+  background: #6b7280;
+  color: white;
+  top: 12px;
+  left: 12px;
+  right: auto;
+}
+
 .plant-card-content {
   padding: 16px;
 }

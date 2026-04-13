@@ -9,9 +9,10 @@ interface PlantModalProps {
     onClose: () => void;
     onEdit: (plant: Plant) => void;
     onDelete: (plantId: number) => void;
+    onArchive: (plant: Plant) => void;
 }
 
-export function PlantModal({ plant, onClose, onEdit, onDelete }: PlantModalProps) {
+export function PlantModal({ plant, onClose, onEdit, onDelete, onArchive }: PlantModalProps) {
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
     const [deleting, setDeleting] = useState(false);
 
@@ -60,6 +61,13 @@ export function PlantModal({ plant, onClose, onEdit, onDelete }: PlantModalProps
                 <div className="modal-actions">
                     <button className="modal-action-btn edit" onClick={() => onEdit(plant)} title="Edit">
                         ✏️
+                    </button>
+                    <button
+                        className="modal-action-btn archive"
+                        onClick={() => onArchive(plant)}
+                        title={plant.archived ? 'Unarchive' : 'Archive'}
+                    >
+                        {plant.archived ? '📤' : '📦'}
                     </button>
                     <button
                         className="modal-action-btn delete"
@@ -116,6 +124,7 @@ export function PlantModal({ plant, onClose, onEdit, onDelete }: PlantModalProps
                             <h2>{plant.name}</h2>
                             <div className="modal-badges">
                                 {plant.thisYear && <span className="badge badge-year">This Year</span>}
+                                {plant.archived && <span className="badge badge-archived">Archived</span>}
                                 {plant.edible && <span className="badge badge-edible">Edible</span>}
                                 {plant.goodForPollinators && <span className="badge badge-bee">🐝 Pollinator Friendly</span>}
                             </div>

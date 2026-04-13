@@ -34,6 +34,7 @@ export interface FilterState {
     sowingMonths: string[];
     harvestMonths: string[];
     thisYearOnly: boolean;
+    showArchived: boolean;
 }
 
 export const MONTHS = [

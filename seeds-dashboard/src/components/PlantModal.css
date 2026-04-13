@@ -229,6 +229,11 @@
     color: var(--warning-dark);
 }
 
+.badge-archived {
+    background: #6b7280;
+    color: white;
+}
+
 .modal-tags {
     display: flex;
     flex-wrap: wrap;
