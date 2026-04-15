@@ -48,7 +48,8 @@ def main():
         account_number=os.environ["OCTOPUS_ACCOUNT_NUMBER"],
         session=session,
     )
-    notifier.send("Octopus voucher tracker started. Watching for Caffe Nero vouchers every 5 min.")
+    target = os.environ.get("OFFER_TARGET", "hot or cold drink")
+    notifier.send(f"Octopus voucher tracker started. Watching for '{target}' every 5 min.")
     last_login = time.time()
 
     while True:
@@ -59,7 +60,7 @@ def main():
                 session.relogin()
                 last_login = time.time()
 
-            result = client.check_and_claim("hot or cold drink")
+            result = client.check_and_claim(target)
 
             if result is not None:
                 logger.info("CLAIMED! Sending notification...")

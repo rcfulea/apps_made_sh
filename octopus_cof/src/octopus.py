@@ -54,12 +54,13 @@ class OctopusClient:
 
         page.wait_for_timeout(1000)
 
-        # Find all offer cards — each card has an h3 + a button
-        # Structure: h3 (offer name) + button (claim / more codes tomorrow)
+        # Log all offer card texts to help diagnose what's visible on the page
         offer_cards = page.query_selector_all('[data-testid="offer-card"]')
-        if not offer_cards:
-            # Fall back: look for cards by structure
-            offer_cards = page.query_selector_all('button')
+        if offer_cards:
+            for i, card in enumerate(offer_cards):
+                logger.info(f"Offer card {i}: {card.inner_text().strip()[:200]}")
+        else:
+            logger.warning("No [data-testid='offer-card'] elements found")
 
         # Find the specific offer by matching visible text near its button
         # The page structure: h3 + disabled/enabled button in the same container
