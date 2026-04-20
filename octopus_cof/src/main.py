@@ -104,16 +104,16 @@ def main():
                 session.relogin()
                 last_login = time.time()
 
-            result = client.check_and_claim()
+            result, screenshot_path = client.check_and_claim()
             consecutive_render_failures = 0  # page loaded fine
 
             if result is not None:
                 logger.info("CLAIMED! Sending notification...")
-                notifier.send(
-                    "Drink voucher claimed!\n\n"
-                    f"{result[:300]}\n\n"
-                    "Check the Octopus app for your code."
-                )
+                notifier.send("Drink voucher claimed! QR code incoming...")
+                if screenshot_path:
+                    notifier.send_photo(screenshot_path, caption="Your voucher QR code")
+                else:
+                    notifier.send(f"{result[:300]}\n\nCheck the Octopus app for your code.")
                 logger.info("Success — sleeping until window closes.")
                 # Sleep out the rest of the window
                 wait = seconds_until_window()

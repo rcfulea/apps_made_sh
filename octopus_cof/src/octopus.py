@@ -10,7 +10,7 @@ only issued via the web OIDC flow, so UI automation is the reliable path.
 
 import os
 import logging
-from typing import Optional
+from typing import Optional, Tuple
 from auth import BrowserSession
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class OctopusClient:
         self.session = session
         self._offer_url = OFFER_GROUP_URL.format(account_number=account_number)
 
-    def check_and_claim(self) -> Optional[str]:
+    def check_and_claim(self) -> Tuple[Optional[str], Optional[str]]:
         """
         Navigate to the offer group page and claim the first available offer.
         Returns page text on success, None if nothing claimable, raises RenderFailure
@@ -68,13 +68,20 @@ class OctopusClient:
             if btn_text == CLAIMABLE_BUTTON and not is_disabled:
                 logger.info(f"Card {i} AVAILABLE — clicking '{btn.inner_text().strip()}'...")
                 btn.click()
-                page.wait_for_timeout(3000)
+
+                # Wait for QR code page ("Present your QR code to the Barista")
+                # There's a loading screen first so give it up to 15s
+                try:
+                    page.wait_for_selector("text=Present your QR code", timeout=15_000)
+                except Exception:
+                    logger.warning("QR page text not found — screenshotting whatever is shown")
 
                 result_text = page.inner_text("body")
                 log_dir = os.environ.get("LOG_DIR", "./logs")
-                page.screenshot(path=os.path.join(log_dir, "claim_result.png"))
+                screenshot_path = os.path.join(log_dir, "claim_result.png")
+                page.screenshot(path=screenshot_path)
                 logger.info(f"Post-claim page text (first 300): {result_text[:300]}")
-                return result_text[:500]
+                return result_text[:500], screenshot_path
 
         logger.info("No claimable offers found this cycle.")
-        return None
+        return None, None
