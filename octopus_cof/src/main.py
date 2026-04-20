@@ -83,7 +83,9 @@ def main():
     logger.info("Starting Octopus voucher tracker...")
     session = start_session(email, password)
     client = OctopusClient(account_number=account_number, session=session)
-    notifier.send(f"Octopus voucher tracker started. Active window: {WINDOW_START}:00–{WINDOW_END}:00.")
+    target = os.environ.get("OFFER_TARGET", "").strip() or None
+    target_label = target or "any available"
+    notifier.send(f"Octopus voucher tracker started. Target: {target_label}. Window: {WINDOW_START}:00–{WINDOW_END}:00.")
     last_login = time.time()
     consecutive_render_failures = 0
 
@@ -104,7 +106,7 @@ def main():
                 session.relogin()
                 last_login = time.time()
 
-            result, screenshot_path = client.check_and_claim()
+            result, screenshot_path = client.check_and_claim(target)
             consecutive_render_failures = 0  # page loaded fine
 
             if result is not None:

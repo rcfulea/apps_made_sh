@@ -19,6 +19,14 @@ OFFER_GROUP_URL = "https://octopus.energy/dashboard/new/accounts/{account_number
 
 CLAIMABLE_BUTTON = "reveal offer"
 
+# Friendly name → substring that appears in the card's DOM text
+# (brand logos are images, not text, so we match on the offer description)
+OFFER_ALIASES = {
+    "nero": "hot or cold drink",
+    "caffe nero": "hot or cold drink",
+    "greggs": "regular hot drink",
+}
+
 
 class RenderFailure(Exception):
     """Page loaded but offer cards never appeared — likely session/server issue."""
@@ -30,12 +38,18 @@ class OctopusClient:
         self.session = session
         self._offer_url = OFFER_GROUP_URL.format(account_number=account_number)
 
-    def check_and_claim(self) -> Tuple[Optional[str], Optional[str]]:
+    def check_and_claim(self, target: Optional[str] = None) -> Tuple[Optional[str], Optional[str]]:
         """
-        Navigate to the offer group page and claim the first available offer.
-        Returns page text on success, None if nothing claimable, raises RenderFailure
-        if the page fails to render offer cards.
+        Navigate to the offer group page and claim an available offer.
+        If target is set, only claim a card whose text contains that substring
+        (or resolve via OFFER_ALIASES). If unset, claim first available.
+        Returns (result_text, screenshot_path) or (None, None) if nothing claimable.
+        Raises RenderFailure if the page fails to render offer cards.
         """
+        filter_text = None
+        if target:
+            filter_text = OFFER_ALIASES.get(target.lower(), target.lower())
+            logger.info(f"Targeting offer matching: '{filter_text}'")
         page = self.session.page
         logger.info("Navigating to offer group page...")
         page.goto(self._offer_url, wait_until="domcontentloaded", timeout=60_000)
@@ -64,6 +78,9 @@ class OctopusClient:
 
             btn_text = btn.inner_text().strip().lower()
             is_disabled = btn.get_attribute("disabled") is not None
+
+            if filter_text and filter_text not in card_text.lower():
+                continue
 
             if btn_text == CLAIMABLE_BUTTON and not is_disabled:
                 logger.info(f"Card {i} AVAILABLE — clicking '{btn.inner_text().strip()}'...")
