@@ -3,6 +3,9 @@ Browser session management for Octopus Energy.
 
 Logs in via headless Chromium and holds a persistent browser context
 so the poller can navigate pages and interact with the UI.
+
+Octopus auth now uses a separate OIDC provider at auth.octopus.energy,
+so login involves a redirect chain before landing on the dashboard.
 """
 
 import logging
@@ -29,7 +32,6 @@ class BrowserSession:
         self.page: Page = None
 
     def start(self):
-        """Launch browser and log in."""
         logger.info("Launching headless browser...")
         self._playwright = sync_playwright().start()
         self._browser = self._playwright.chromium.launch(headless=True)
@@ -44,26 +46,38 @@ class BrowserSession:
         logger.info("Logging into Octopus Energy...")
         self.page.goto(LOGIN_URL, wait_until="domcontentloaded", timeout=60_000)
 
-        # Session may still be valid — Octopus redirects to dashboard via JS after
-        # domcontentloaded, so we can't rely on the URL immediately after goto().
-        # Try waiting for the login form; if it doesn't appear, we're being redirected.
+        # Wait for email input — it appears on both octopus.energy/login and
+        # auth.octopus.energy/login (OIDC redirect). 15s covers the redirect.
         try:
-            self.page.wait_for_selector('input[type="email"]', timeout=10_000)
+            self.page.wait_for_selector('input[type="email"]', timeout=15_000)
         except Exception:
-            # No login form — wait for the dashboard redirect to complete
+            # No login form — already authenticated, wait for dashboard
             if DASHBOARD_URL not in self.page.url:
                 self.page.wait_for_url(f"{DASHBOARD_URL}**", timeout=30_000)
             logger.info(f"Already logged in. Current URL: {self.page.url}")
             return
 
+        logger.info(f"Login form at: {self.page.url}")
         self.page.fill('input[type="email"]', self.email)
         self.page.fill('input[type="password"]', self.password)
-        self.page.click('button[type="submit"]')
-        self.page.wait_for_url(f"{DASHBOARD_URL}**", timeout=60_000)
+
+        # Submit — try type=submit first, fall back to any visible submit button
+        submitted = False
+        for selector in ['button[type="submit"]', 'input[type="submit"]', 'button:has-text("Sign in")', 'button:has-text("Log in")']:
+            btn = self.page.query_selector(selector)
+            if btn:
+                btn.click()
+                submitted = True
+                break
+        if not submitted:
+            self.page.keyboard.press("Enter")
+
+        # OAuth redirect chain (auth.octopus.energy → octopus.energy/oauth-callback
+        # → dashboard) can take a while — 120s to be safe
+        self.page.wait_for_url(f"{DASHBOARD_URL}**", timeout=120_000)
         logger.info(f"Logged in. Current URL: {self.page.url}")
 
     def relogin(self):
-        """Re-authenticate if the session has expired."""
         logger.info("Re-logging in...")
         self._login()
 
