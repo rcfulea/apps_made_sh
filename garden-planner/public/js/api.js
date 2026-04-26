@@ -163,10 +163,17 @@ const API = (() => {
         return request('/journal');
     }
 
-    async function addJournalEntry(title, content, category, date, value, valueUnit) {
+    async function addJournalEntry(title, content, category, date, value, valueUnit, photo) {
         return request('/journal', {
             method: 'POST',
-            body: { title, content, category, date, value, valueUnit },
+            body: { title, content, category, date, value, valueUnit, photo },
+        });
+    }
+
+    async function uploadJournalPhoto(filename, data) {
+        return request('/journal/photo', {
+            method: 'POST',
+            body: { filename, data },
         });
     }
 
@@ -206,6 +213,7 @@ const API = (() => {
         getJournal,
         addJournalEntry,
         deleteJournalEntry,
+        uploadJournalPhoto,
     };
 
     // ==========================================

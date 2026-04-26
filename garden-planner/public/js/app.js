@@ -332,8 +332,16 @@ const App = (() => {
             updateAddAreaPreview();
         });
 
-        // Save button
-        document.getElementById('btn-save')?.addEventListener('click', saveGarden);
+        // Save button — saves to current named plan if one is active, else saves working garden
+        document.getElementById('btn-save')?.addEventListener('click', saveCurrent);
+
+        // Save As button
+        document.getElementById('btn-save-as')?.addEventListener('click', () => {
+            const current = State.getProperty('currentPlanName');
+            const input = document.getElementById('save-as-name');
+            if (input && current && current !== 'default') input.value = current;
+            openModal('modal-save-as');
+        });
 
         // Load button
         document.getElementById('btn-load')?.addEventListener('click', () => {
@@ -613,9 +621,9 @@ const App = (() => {
             showToast('Plant removed', 'info');
         });
 
-        // Plans modal
-        document.getElementById('btn-save-as-plan')?.addEventListener('click', async () => {
-            const name = document.getElementById('new-plan-name').value.trim();
+        // Save As modal confirm
+        document.getElementById('btn-confirm-save-as')?.addEventListener('click', async () => {
+            const name = document.getElementById('save-as-name').value.trim();
             if (!name) {
                 showToast('Please enter a plan name', 'error');
                 return;
@@ -701,6 +709,20 @@ const App = (() => {
         }
     }
 
+    async function saveCurrent() {
+        const planName = State.getProperty('currentPlanName');
+        if (planName && planName !== 'default') {
+            try {
+                await API.savePlan(planName, State.serialize());
+                showToast(`Saved "${planName}"`, 'success');
+            } catch (error) {
+                showToast(error.message || 'Save failed', 'error');
+            }
+        } else {
+            await saveGarden();
+        }
+    }
+
     async function loadGarden() {
         try {
             const data = await API.loadGarden();
@@ -759,9 +781,19 @@ const App = (() => {
     }
 
     function updatePlanDisplay() {
+        const planName = State.getProperty('currentPlanName');
         const planNameEl = document.getElementById('current-plan-name');
-        if (planNameEl) {
-            planNameEl.textContent = State.getProperty('currentPlanName') || '';
+        if (planNameEl) planNameEl.textContent = planName && planName !== 'default' ? planName : '';
+
+        const saveBtn = document.getElementById('btn-save');
+        if (saveBtn) {
+            if (planName && planName !== 'default') {
+                saveBtn.title = `Save changes to "${planName}"`;
+                saveBtn.textContent = '💾 Save';
+            } else {
+                saveBtn.title = 'Save garden';
+                saveBtn.textContent = '💾 Save';
+            }
         }
     }
 
@@ -780,7 +812,7 @@ const App = (() => {
             // Ctrl+S to save
             if (e.ctrlKey && e.key === 's') {
                 e.preventDefault();
-                saveGarden();
+                saveCurrent();
             }
         });
     }
@@ -1615,6 +1647,22 @@ const App = (() => {
         task: '✅', amendment: '🧪'
     };
 
+    let cachedJournalEntries = [];
+    let pendingPhotoPath = null;
+
+    function journalDateStr(dateField) {
+        if (!dateField) return '';
+        if (dateField.length === 10) {
+            const [y, m, d] = dateField.split('-').map(Number);
+            return new Date(y, m - 1, d).toLocaleDateString('en-GB', {
+                weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+            });
+        }
+        return new Date(dateField).toLocaleDateString('en-GB', {
+            weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+        });
+    }
+
     async function openJournal() {
         const container = document.getElementById('journal-entries');
         container.innerHTML = '<p style="text-align:center;">Loading entries...</p>';
@@ -1622,7 +1670,9 @@ const App = (() => {
 
         try {
             const data = await API.getJournal();
-            renderJournalEntries(data.entries || []);
+            cachedJournalEntries = data.entries || [];
+            renderJournalEntries(cachedJournalEntries);
+            populateTotalsYears(cachedJournalEntries);
         } catch (error) {
             container.innerHTML = `<p style="color:red;">Failed to load journal: ${error.message}</p>`;
         }
@@ -1637,22 +1687,13 @@ const App = (() => {
         }
 
         container.innerHTML = entries.map(entry => {
-            // Handle both date-only 'YYYY-MM-DD' and legacy ISO datetime strings
-            let dateStr;
-            if (entry.date && entry.date.length === 10) {
-                const [y, m, d] = entry.date.split('-').map(Number);
-                dateStr = new Date(y, m - 1, d).toLocaleDateString('en-GB', {
-                    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
-                });
-            } else {
-                dateStr = new Date(entry.date).toLocaleDateString('en-GB', {
-                    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
-                });
-            }
             const icon = CATEGORY_ICONS[entry.category] || '📝';
             const categoryLabel = entry.category ? entry.category.charAt(0).toUpperCase() + entry.category.slice(1) : 'General';
             const valueBadge = entry.value != null
                 ? `<span class="journal-value-badge">${entry.value} ${entry.valueUnit || ''}</span>`
+                : '';
+            const photoHtml = entry.photo
+                ? `<a href="${entry.photo}" target="_blank"><img src="${entry.photo}" class="journal-photo-thumb" alt="Photo"></a>`
                 : '';
 
             return `
@@ -1661,31 +1702,99 @@ const App = (() => {
                         <div class="journal-entry-meta">
                             <span class="journal-category-badge" data-category="${entry.category}">${icon} ${categoryLabel}</span>
                             ${valueBadge}
-                            <span class="journal-date">${dateStr}</span>
+                            <span class="journal-date">${journalDateStr(entry.date)}</span>
                         </div>
                         <button class="btn btn-danger btn-sm btn-delete-entry" data-id="${entry.id}" title="Delete entry">×</button>
                     </div>
                     ${entry.title ? `<div class="journal-entry-title">${escapeHtml(entry.title)}</div>` : ''}
                     <div class="journal-entry-content">${escapeHtml(entry.content).replace(/\n/g, '<br>')}</div>
+                    ${photoHtml}
                 </div>
             `;
         }).join('');
 
-        // Delete handlers
         container.querySelectorAll('.btn-delete-entry').forEach(btn => {
             btn.addEventListener('click', async () => {
                 if (!confirm('Delete this journal entry?')) return;
                 try {
                     await API.deleteJournalEntry(btn.dataset.id);
                     showToast('Entry deleted', 'info');
-                    // Refresh entries without re-opening modal
                     const data = await API.getJournal();
-                    renderJournalEntries(data.entries || []);
+                    cachedJournalEntries = data.entries || [];
+                    renderJournalEntries(cachedJournalEntries);
+                    populateTotalsYears(cachedJournalEntries);
                 } catch (error) {
                     showToast('Failed to delete: ' + error.message, 'error');
                 }
             });
         });
+    }
+
+    function populateTotalsYears(entries) {
+        const yearSel = document.getElementById('totals-year');
+        if (!yearSel) return;
+        const years = [...new Set(entries
+            .filter(e => e.date)
+            .map(e => e.date.substring(0, 4))
+        )].sort((a, b) => b - a);
+
+        const current = yearSel.value;
+        yearSel.innerHTML = `<option value="">All years</option>` +
+            years.map(y => `<option value="${y}" ${y === current ? 'selected' : ''}>${y}</option>`).join('');
+    }
+
+    function renderTotals(entries, year) {
+        const el = document.getElementById('totals-content');
+        if (!el) return;
+
+        const filtered = entries.filter(e =>
+            e.value != null &&
+            ['harvest', 'planting'].includes(e.category) &&
+            (!year || (e.date && e.date.startsWith(year)))
+        );
+
+        if (filtered.length === 0) {
+            el.innerHTML = '<p style="color:#999;">No harvest or planting records' + (year ? ` for ${year}` : '') + '.</p>';
+            return;
+        }
+
+        // Group by category + title + unit
+        const groups = {};
+        filtered.forEach(e => {
+            const key = `${e.category}|${e.title || '(untitled)'}|${e.valueUnit || ''}`;
+            if (!groups[key]) groups[key] = { category: e.category, title: e.title || '(untitled)', unit: e.valueUnit || '', total: 0, entries: 0 };
+            groups[key].total += e.value;
+            groups[key].entries++;
+        });
+
+        const tableRows = (rows) => rows.map(g => `
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:6px 8px;">${escapeHtml(g.title)}</td>
+                <td style="padding:6px 8px;font-weight:600;">${+g.total.toFixed(3)} ${escapeHtml(g.unit)}</td>
+                <td style="padding:6px 8px;color:#999;font-size:12px;">${g.entries} ${g.entries === 1 ? 'entry' : 'entries'}</td>
+            </tr>`).join('');
+
+        const tableHead = `<tr style="background:#f5f5f5;font-size:12px;">
+            <th style="text-align:left;padding:6px 8px;">Plant</th>
+            <th style="text-align:left;padding:6px 8px;">Total</th>
+            <th style="text-align:left;padding:6px 8px;">Records</th>
+        </tr>`;
+
+        const harvests = Object.values(groups).filter(g => g.category === 'harvest');
+        const plantings = Object.values(groups).filter(g => g.category === 'planting');
+
+        let html = '';
+        if (harvests.length) {
+            html += `<h4 style="margin:0 0 8px;">🥕 Harvest Totals</h4>
+                <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px;">
+                ${tableHead}${tableRows(harvests)}</table>`;
+        }
+        if (plantings.length) {
+            html += `<h4 style="margin:0 0 8px;">🌱 Planting Totals</h4>
+                <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                ${tableHead}${tableRows(plantings)}</table>`;
+        }
+        el.innerHTML = html;
     }
 
     function escapeHtml(str) {
@@ -1694,16 +1803,38 @@ const App = (() => {
         return div.innerHTML;
     }
 
+    function clearPhotoState() {
+        pendingPhotoPath = null;
+        document.getElementById('journal-photo-input').value = '';
+        document.getElementById('journal-photo-name').textContent = '';
+        document.getElementById('journal-photo-preview').style.display = 'none';
+        document.getElementById('journal-photo-img').src = '';
+    }
+
     function setupJournalHandlers() {
         const VALUE_CATEGORIES = new Set(['harvest', 'planting']);
 
         document.getElementById('btn-journal')?.addEventListener('click', () => {
-            // Default date to today
             const dateEl = document.getElementById('journal-date');
-            if (dateEl && !dateEl.value) {
-                dateEl.value = new Date().toISOString().split('T')[0];
-            }
+            if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
             openJournal();
+        });
+
+        // Tab switching
+        document.querySelectorAll('.journal-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.journal-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                const isEntries = tab.dataset.tab === 'entries';
+                document.getElementById('journal-tab-entries').style.display = isEntries ? '' : 'none';
+                document.getElementById('journal-tab-totals').style.display = isEntries ? 'none' : '';
+                if (!isEntries) renderTotals(cachedJournalEntries, document.getElementById('totals-year')?.value || '');
+            });
+        });
+
+        // Totals year filter
+        document.getElementById('totals-year')?.addEventListener('change', (e) => {
+            renderTotals(cachedJournalEntries, e.target.value);
         });
 
         // Show/hide value row based on category
@@ -1711,6 +1842,43 @@ const App = (() => {
             const row = document.getElementById('journal-value-row');
             if (row) row.style.display = VALUE_CATEGORIES.has(e.target.value) ? 'flex' : 'none';
         });
+
+        // Photo upload
+        document.getElementById('btn-journal-photo')?.addEventListener('click', () => {
+            document.getElementById('journal-photo-input').click();
+        });
+
+        document.getElementById('journal-photo-input')?.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Show local preview immediately
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                document.getElementById('journal-photo-img').src = ev.target.result;
+                document.getElementById('journal-photo-preview').style.display = 'block';
+                document.getElementById('journal-photo-name').textContent = file.name;
+            };
+            reader.readAsDataURL(file);
+
+            // Upload to server
+            try {
+                const dataUrl = await new Promise((res, rej) => {
+                    const r = new FileReader();
+                    r.onload = (ev) => res(ev.target.result);
+                    r.onerror = rej;
+                    r.readAsDataURL(file);
+                });
+                const result = await API.uploadJournalPhoto(file.name, dataUrl);
+                pendingPhotoPath = result.path;
+            } catch (error) {
+                showToast('Photo upload failed: ' + error.message, 'error');
+                clearPhotoState();
+            }
+        });
+
+        // Click photo preview to remove
+        document.getElementById('journal-photo-img')?.addEventListener('click', clearPhotoState);
 
         document.getElementById('btn-add-journal')?.addEventListener('click', async () => {
             const title = document.getElementById('journal-title').value.trim();
@@ -1726,17 +1894,18 @@ const App = (() => {
             }
 
             try {
-                await API.addJournalEntry(title, content, category, date, value || null, value ? valueUnit : '');
-                // Clear form
+                await API.addJournalEntry(title, content, category, date, value || null, value ? valueUnit : '', pendingPhotoPath);
                 document.getElementById('journal-title').value = '';
                 document.getElementById('journal-content').value = '';
                 document.getElementById('journal-category').value = 'general';
                 document.getElementById('journal-value').value = '';
                 document.getElementById('journal-value-row').style.display = 'none';
+                clearPhotoState();
                 showToast('Journal entry added!', 'success');
-                // Refresh entries
                 const data = await API.getJournal();
-                renderJournalEntries(data.entries || []);
+                cachedJournalEntries = data.entries || [];
+                renderJournalEntries(cachedJournalEntries);
+                populateTotalsYears(cachedJournalEntries);
             } catch (error) {
                 showToast('Failed to add entry: ' + error.message, 'error');
             }

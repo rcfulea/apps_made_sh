@@ -106,7 +106,8 @@
                     <div class="toolbar-group">
                         <button id="btn-add-bed" class="btn btn-primary">+ Add Area</button>
                         <button id="btn-undo" class="btn btn-secondary" title="Undo (Ctrl+Z)">↶ Undo</button>
-                        <button id="btn-save" class="btn btn-secondary">Save</button>
+                        <button id="btn-save" class="btn btn-secondary" title="Save current plan">💾 Save</button>
+                        <button id="btn-save-as" class="btn btn-secondary" title="Save as new plan">Save As</button>
                         <button id="btn-load" class="btn btn-secondary">Load</button>
                         <button id="btn-summary" class="btn btn-secondary">📋 Summary</button>
                         <button id="btn-stats" class="btn btn-secondary">📊 Stats</button>
@@ -228,22 +229,35 @@
             </div>
         </div>
 
-        <!-- Plans Modal -->
+        <!-- Load Plan Modal -->
         <div id="modal-plans" class="modal hidden">
             <div class="modal-header">
-                <h3>Garden Plans</h3>
+                <h3>Load Plan</h3>
                 <button class="btn-close modal-close">×</button>
             </div>
             <div class="modal-body">
                 <div id="plans-list" class="plans-list"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-close">Close</button>
+            </div>
+        </div>
+
+        <!-- Save As Modal -->
+        <div id="modal-save-as" class="modal hidden">
+            <div class="modal-header">
+                <h3>Save As New Plan</h3>
+                <button class="btn-close modal-close">×</button>
+            </div>
+            <div class="modal-body">
                 <div class="form-group">
-                    <label for="new-plan-name">New Plan Name</label>
-                    <input type="text" id="new-plan-name" placeholder="Spring 2024">
+                    <label for="save-as-name">Plan Name</label>
+                    <input type="text" id="save-as-name" placeholder="Spring 2025">
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary modal-close">Cancel</button>
-                <button id="btn-save-as-plan" class="btn btn-primary">Save As New Plan</button>
+                <button id="btn-confirm-save-as" class="btn btn-primary">Save</button>
             </div>
         </div>
 
@@ -427,39 +441,63 @@
                 <h3>📓 Garden Journal</h3>
                 <button class="btn-close modal-close">×</button>
             </div>
-            <div class="modal-body">
-                <!-- Add Entry Form -->
-                <div class="journal-add-form">
-                    <div style="display:flex;gap:8px;margin-bottom:8px;">
-                        <input type="date" id="journal-date" style="flex:0 0 auto;">
-                        <select id="journal-category" style="flex:1;">
-                            <option value="general">📝 General</option>
-                            <option value="observation">👁️ Observation</option>
-                            <option value="planting">🌱 Planting</option>
-                            <option value="harvest">🥕 Harvest</option>
-                            <option value="pest">🐛 Pest/Disease</option>
-                            <option value="weather">🌤️ Weather</option>
-                            <option value="task">✅ Task Done</option>
-                            <option value="amendment">🧪 Soil/Amendment</option>
-                        </select>
-                    </div>
-                    <input type="text" id="journal-title" placeholder="Entry title (optional)" style="width:100%;box-sizing:border-box;margin-bottom:8px;">
-                    <div id="journal-value-row" style="display:none;gap:8px;margin-bottom:8px;align-items:center;">
-                        <input type="number" id="journal-value" placeholder="Amount" step="0.1" min="0" style="width:90px;">
-                        <select id="journal-value-unit">
-                            <option value="kg">kg</option>
-                            <option value="g">g</option>
-                            <option value="lb">lb</option>
-                            <option value="count">count</option>
-                            <option value="plants">plants</option>
-                            <option value="seeds">seeds</option>
-                        </select>
-                    </div>
-                    <textarea id="journal-content" rows="3" placeholder="Notes..."></textarea>
-                    <button id="btn-add-journal" class="btn btn-primary" style="margin-top:8px;">Add Entry</button>
+            <div class="modal-body" style="padding-top:0;">
+                <!-- Tabs -->
+                <div class="journal-tabs">
+                    <button class="journal-tab active" data-tab="entries">📋 Entries</button>
+                    <button class="journal-tab" data-tab="totals">📊 Totals</button>
                 </div>
-                <!-- Entries List -->
-                <div id="journal-entries" class="journal-entries">Loading...</div>
+
+                <!-- Entries Tab -->
+                <div id="journal-tab-entries">
+                    <div class="journal-add-form">
+                        <div style="display:flex;gap:8px;margin-bottom:8px;">
+                            <input type="date" id="journal-date" style="flex:0 0 auto;">
+                            <select id="journal-category" style="flex:1;">
+                                <option value="general">📝 General</option>
+                                <option value="observation">👁️ Observation</option>
+                                <option value="planting">🌱 Planting</option>
+                                <option value="harvest">🥕 Harvest</option>
+                                <option value="pest">🐛 Pest/Disease</option>
+                                <option value="weather">🌤️ Weather</option>
+                                <option value="task">✅ Task Done</option>
+                                <option value="amendment">🧪 Soil/Amendment</option>
+                            </select>
+                        </div>
+                        <input type="text" id="journal-title" placeholder="Plant / entry title" style="width:100%;box-sizing:border-box;margin-bottom:8px;">
+                        <div id="journal-value-row" style="display:none;gap:8px;margin-bottom:8px;align-items:center;">
+                            <input type="number" id="journal-value" placeholder="Amount" step="0.1" min="0" style="width:90px;">
+                            <select id="journal-value-unit">
+                                <option value="kg">kg</option>
+                                <option value="g">g</option>
+                                <option value="lb">lb</option>
+                                <option value="count">count</option>
+                                <option value="plants">plants</option>
+                                <option value="seeds">seeds</option>
+                            </select>
+                        </div>
+                        <textarea id="journal-content" rows="3" placeholder="Notes..."></textarea>
+                        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                            <button id="btn-add-journal" class="btn btn-primary">Add Entry</button>
+                            <input type="file" id="journal-photo-input" accept="image/*" style="display:none;">
+                            <button type="button" id="btn-journal-photo" class="btn btn-secondary">📷 Photo</button>
+                            <span id="journal-photo-name" style="font-size:12px;color:#666;"></span>
+                        </div>
+                        <div id="journal-photo-preview" style="display:none;margin-top:8px;">
+                            <img id="journal-photo-img" style="max-height:100px;border-radius:4px;cursor:pointer;" title="Click to remove">
+                        </div>
+                    </div>
+                    <div id="journal-entries" class="journal-entries">Loading...</div>
+                </div>
+
+                <!-- Totals Tab -->
+                <div id="journal-tab-totals" style="display:none;padding:12px 0;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+                        <label style="font-weight:500;">Year:</label>
+                        <select id="totals-year" class="form-control" style="width:auto;"></select>
+                    </div>
+                    <div id="totals-content"></div>
+                </div>
             </div>
         </div>
 

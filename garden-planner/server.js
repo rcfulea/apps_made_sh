@@ -405,6 +405,32 @@ function handleAPI(req, res) {
             }
 
             // ==========================================
+            // Journal Photo Upload Route
+            // ==========================================
+
+            if (pathname === '/api/journal/photo' && method === 'POST') {
+                const session = getSession(req);
+                if (!session) return sendError('Not authenticated', 401);
+
+                const { filename, data } = await parseBody();
+                if (!filename || !data) return sendError('Filename and data required', 400);
+
+                const ext = path.extname(filename).toLowerCase();
+                if (!['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext)) {
+                    return sendError('Only image files allowed', 400);
+                }
+
+                const uploadsDir = path.join(PUBLIC_DIR, 'uploads', 'journal');
+                if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+                const safeName = Date.now() + '-' + crypto.randomBytes(4).toString('hex') + ext;
+                const base64Data = data.replace(/^data:[^;]+;base64,/, '');
+                fs.writeFileSync(path.join(uploadsDir, safeName), Buffer.from(base64Data, 'base64'));
+
+                return sendJSON({ path: `/uploads/journal/${safeName}` });
+            }
+
+            // ==========================================
             // Icon Upload Route
             // ==========================================
 
@@ -566,7 +592,7 @@ function handleAPI(req, res) {
             }
 
             if (pathname === '/api/journal' && method === 'POST') {
-                const { title, content, category, date, value, valueUnit } = await parseBody();
+                const { title, content, category, date, value, valueUnit, photo } = await parseBody();
                 if (!content) return sendError('Content is required', 400);
 
                 const allJournals = loadJSON(JOURNAL_FILE, {});
@@ -580,6 +606,7 @@ function handleAPI(req, res) {
                     category: category || 'general',
                     value: value != null && value !== '' ? parseFloat(value) : null,
                     valueUnit: valueUnit || '',
+                    photo: photo || null,
                 };
 
                 allJournals[session.username].unshift(entry);
