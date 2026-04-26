@@ -8,6 +8,7 @@ Octopus auth now uses a separate OIDC provider at auth.octopus.energy,
 so login involves a redirect chain before landing on the dashboard.
 """
 
+import os
 import logging
 from playwright.sync_api import sync_playwright, BrowserContext, Page
 
@@ -66,15 +67,28 @@ class BrowserSession:
         for selector in ['button[type="submit"]', 'input[type="submit"]', 'button:has-text("Sign in")', 'button:has-text("Log in")']:
             btn = self.page.query_selector(selector)
             if btn:
+                logger.info(f"Submitting via selector: {selector}")
                 btn.click()
                 submitted = True
                 break
         if not submitted:
+            logger.info("No submit button found — pressing Enter")
             self.page.keyboard.press("Enter")
+
+        # Screenshot immediately after submit to catch bot challenges / extra steps
+        self.page.wait_for_timeout(3000)
+        log_dir = os.environ.get("LOG_DIR", "./logs")
+        self.page.screenshot(path=os.path.join(log_dir, "login_post_submit.png"))
+        logger.info(f"Post-submit URL: {self.page.url}")
 
         # OAuth redirect chain (auth.octopus.energy → octopus.energy/oauth-callback
         # → dashboard) can take a while — 120s to be safe
-        self.page.wait_for_url(f"{DASHBOARD_URL}**", timeout=120_000)
+        try:
+            self.page.wait_for_url(f"{DASHBOARD_URL}**", timeout=120_000)
+        except Exception:
+            self.page.screenshot(path=os.path.join(log_dir, "login_timeout.png"))
+            logger.error(f"Login timeout. Final URL: {self.page.url}")
+            raise
         logger.info(f"Logged in. Current URL: {self.page.url}")
 
     def relogin(self):
