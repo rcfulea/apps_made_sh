@@ -26,7 +26,8 @@
 .toolbar-group {
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
 }
 
 /* Garden Area */

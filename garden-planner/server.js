@@ -197,6 +197,9 @@ function serveStatic(req, res) {
 
         const ext = path.extname(filePath).toLowerCase();
         res.setHeader('Content-Type', MIME_TYPES[ext] || 'application/octet-stream');
+        if (['.html', '.js', '.css'].includes(ext)) {
+            res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+        }
         res.end(data);
     });
 }
