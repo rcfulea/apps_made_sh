@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 
 from dotenv import load_dotenv
-from auth import BrowserSession
+from auth import BrowserSession, SessionExpired
 from octopus import OctopusClient, RenderFailure
 from notify import TelegramNotifier
 
@@ -46,28 +46,27 @@ def seconds_until_window():
     return (target - now).total_seconds()
 
 
-def start_session(email, password):
-    session = BrowserSession(email=email, password=password)
+def start_session(session_file):
+    session = BrowserSession(session_file=session_file)
     session.start()
     return session
 
 
-def restart_browser(session, email, password, account_number):
+def restart_browser(session, session_file, account_number):
     logger.info("Restarting browser session...")
     try:
         session.stop()
     except Exception:
         pass
     time.sleep(30)
-    new_session = start_session(email, password)
+    new_session = start_session(session_file)
     new_client = OctopusClient(account_number=account_number, session=new_session)
     return new_session, new_client
 
 
 def main():
-    email = os.environ["OCTOPUS_EMAIL"]
-    password = os.environ["OCTOPUS_PASSWORD"]
     account_number = os.environ["OCTOPUS_ACCOUNT_NUMBER"]
+    session_file = os.environ.get("SESSION_FILE", "/app/session.json")
 
     notifier = TelegramNotifier(
         bot_token=os.environ["TELEGRAM_BOT_TOKEN"],
@@ -81,7 +80,17 @@ def main():
         time.sleep(wait)
 
     logger.info("Starting Octopus voucher tracker...")
-    session = start_session(email, password)
+
+    try:
+        session = start_session(session_file)
+    except SessionExpired as e:
+        logger.error(f"Session expired on startup: {e}")
+        notifier.send(
+            "Octopus session expired — manual re-login required.\n"
+            "Run tools/save_session.py, copy session.json to server, restart container."
+        )
+        return
+
     client = OctopusClient(account_number=account_number, session=session)
     target = os.environ.get("OFFER_TARGET", "").strip() or None
     target_label = target or "any available"
@@ -102,7 +111,7 @@ def main():
 
         try:
             if time.time() - last_login > RELOGIN_INTERVAL:
-                logger.info("Periodic re-login...")
+                logger.info("Periodic session re-verify...")
                 session.relogin()
                 last_login = time.time()
 
@@ -126,6 +135,18 @@ def main():
             else:
                 logger.info("Not available yet. Sleeping...")
 
+        except SessionExpired as e:
+            logger.error(f"Session expired during polling: {e}")
+            notifier.send(
+                "Octopus session expired — manual re-login required.\n"
+                "Run tools/save_session.py, copy session.json to server, restart container."
+            )
+            try:
+                session.stop()
+            except Exception:
+                pass
+            return
+
         except RenderFailure as e:
             consecutive_render_failures += 1
             logger.warning(f"Render failure ({consecutive_render_failures}/{RENDER_FAIL_THRESHOLD}): {e}")
@@ -134,10 +155,16 @@ def main():
                 logger.warning("Too many render failures — restarting browser.")
                 notifier.send(f"Page failed to render {RENDER_FAIL_THRESHOLD}x in a row. Restarting browser.")
                 try:
-                    session, client = restart_browser(session, email, password, account_number)
+                    session, client = restart_browser(session, session_file, account_number)
                     last_login = time.time()
                     consecutive_render_failures = 0
                     logger.info("Browser restarted after render failures.")
+                except SessionExpired:
+                    notifier.send(
+                        "Octopus session expired — manual re-login required.\n"
+                        "Run tools/save_session.py, copy session.json to server, restart container."
+                    )
+                    return
                 except Exception as re:
                     logger.error(f"Browser restart failed: {re}", exc_info=True)
                     notifier.send(f"Browser restart failed: {str(re).splitlines()[0][:150]}")
@@ -149,9 +176,15 @@ def main():
             consecutive_render_failures = 0
 
             try:
-                session, client = restart_browser(session, email, password, account_number)
+                session, client = restart_browser(session, session_file, account_number)
                 last_login = time.time()
                 logger.info("Browser session recovered successfully.")
+            except SessionExpired:
+                notifier.send(
+                    "Octopus session expired — manual re-login required.\n"
+                    "Run tools/save_session.py, copy session.json to server, restart container."
+                )
+                return
             except Exception as re:
                 short_re = str(re).splitlines()[0][:200]
                 logger.error(f"Recovery failed: {re}", exc_info=True)
