@@ -163,10 +163,10 @@ const API = (() => {
         return request('/journal');
     }
 
-    async function addJournalEntry(title, content, category) {
+    async function addJournalEntry(title, content, category, date, value, valueUnit) {
         return request('/journal', {
             method: 'POST',
-            body: { title, content, category },
+            body: { title, content, category, date, value, valueUnit },
         });
     }
 

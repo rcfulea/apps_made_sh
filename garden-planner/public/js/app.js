@@ -300,22 +300,36 @@ const App = (() => {
             openModal('modal-add-bed');
         });
 
-        // Confirm Add Bed
+        // Live preview for Add Area modal
+        function updateAddAreaPreview() {
+            const wM = parseFloat(document.getElementById('bed-width').value) || 0;
+            const hM = parseFloat(document.getElementById('bed-height').value) || 0;
+            const w = Math.max(1, Math.round(wM / 0.3048));
+            const h = Math.max(1, Math.round(hM / 0.3048));
+            const preview = document.getElementById('bed-cells-preview');
+            if (preview) preview.textContent = `→ ${w} × ${h} sq ft cells`;
+        }
+        document.getElementById('bed-width')?.addEventListener('input', updateAddAreaPreview);
+        document.getElementById('bed-height')?.addEventListener('input', updateAddAreaPreview);
+        updateAddAreaPreview();
+
+        // Confirm Add Area
         document.getElementById('btn-confirm-add-bed')?.addEventListener('click', () => {
             const name = document.getElementById('bed-name').value.trim();
-            const width = parseInt(document.getElementById('bed-width').value) || 4;
-            const height = parseInt(document.getElementById('bed-height').value) || 2;
-            const cellSize = parseInt(document.getElementById('bed-cell-size').value) || 30;
+            const widthM = parseFloat(document.getElementById('bed-width').value) || 1.2;
+            const heightM = parseFloat(document.getElementById('bed-height').value) || 0.6;
+            const width = Math.max(1, Math.round(widthM / 0.3048));
+            const height = Math.max(1, Math.round(heightM / 0.3048));
 
-            State.addBed(name, width, height, cellSize);
+            State.addBed(name, width, height, 30.48);
             closeModal();
-            showToast('Bed added!', 'success');
+            showToast('Area added!', 'success');
 
             // Reset form
             document.getElementById('bed-name').value = '';
-            document.getElementById('bed-width').value = '4';
-            document.getElementById('bed-height').value = '2';
-            document.getElementById('bed-cell-size').value = '30';
+            document.getElementById('bed-width').value = '1.2';
+            document.getElementById('bed-height').value = '0.6';
+            updateAddAreaPreview();
         });
 
         // Save button
@@ -446,7 +460,7 @@ const App = (() => {
             <div style="margin-bottom:10px;display:flex;align-items:center;gap:8px;">
                 <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;">
                     <input type="checkbox" id="summary-bordered-only" ${borderedOnly ? 'checked' : ''}>
-                    Count only bordered cells
+                    Count only outlined cells
                 </label>
             </div>
         `;
@@ -456,7 +470,7 @@ const App = (() => {
             <div class="summary-stats">
                 <div class="summary-stat">
                     <div class="summary-stat-value">${beds.length}</div>
-                    <div class="summary-stat-label">Beds</div>
+                    <div class="summary-stat-label">Areas</div>
                 </div>
                 <div class="summary-stat">
                     <div class="summary-stat-value">${usedCells}</div>
@@ -536,16 +550,30 @@ const App = (() => {
             if (e.target === modalOverlay) closeModal();
         });
 
+        // Live preview for Resize Area modal
+        function updateResizePreview() {
+            const wM = parseFloat(document.getElementById('resize-width').value) || 0;
+            const hM = parseFloat(document.getElementById('resize-height').value) || 0;
+            const w = Math.max(1, Math.round(wM / 0.3048));
+            const h = Math.max(1, Math.round(hM / 0.3048));
+            const preview = document.getElementById('resize-cells-preview');
+            if (preview) preview.textContent = `→ ${w} × ${h} sq ft cells`;
+        }
+        document.getElementById('resize-width')?.addEventListener('input', updateResizePreview);
+        document.getElementById('resize-height')?.addEventListener('input', updateResizePreview);
+
         // Resize modal
         document.getElementById('btn-confirm-resize')?.addEventListener('click', () => {
             if (!editingBedId) return;
 
-            const width = parseInt(document.getElementById('resize-width').value);
-            const height = parseInt(document.getElementById('resize-height').value);
+            const widthM = parseFloat(document.getElementById('resize-width').value);
+            const heightM = parseFloat(document.getElementById('resize-height').value);
+            const width = Math.max(1, Math.round(widthM / 0.3048));
+            const height = Math.max(1, Math.round(heightM / 0.3048));
 
             State.resizeBed(editingBedId, width, height);
             closeModal();
-            showToast('Bed resized!', 'success');
+            showToast('Area resized!', 'success');
         });
 
         // Month toggle handlers
@@ -627,9 +655,11 @@ const App = (() => {
 
         editingBedId = bedId;
 
-        document.getElementById('resize-width').value = bed.width;
-        document.getElementById('resize-height').value = bed.height;
+        document.getElementById('resize-width').value = (bed.width * 0.3048).toFixed(2);
+        document.getElementById('resize-height').value = (bed.height * 0.3048).toFixed(2);
         document.getElementById('resize-warning')?.classList.add('hidden');
+        const preview = document.getElementById('resize-cells-preview');
+        if (preview) preview.textContent = `→ ${bed.width} × ${bed.height} sq ft cells`;
 
         openModal('modal-resize-bed');
     }
@@ -1549,7 +1579,7 @@ const App = (() => {
                     <p style="margin-bottom:12px;">Found <strong>${warnings.length}</strong> repeated plant families across plans:</p>
                     <table style="width:100%;border-collapse:collapse;font-size:13px;">
                         <tr style="background:#f5f5f5;">
-                            <th style="text-align:left;padding:6px 8px;">Bed</th>
+                            <th style="text-align:left;padding:6px 8px;">Area</th>
                             <th style="text-align:left;padding:6px 8px;">Family</th>
                             <th style="text-align:left;padding:6px 8px;">Repeated In</th>
                         </tr>
@@ -1562,7 +1592,7 @@ const App = (() => {
                         `).join('')}
                     </table>
                     <p style="margin-top:12px;font-size:12px;color:#666;">
-                        💡 <em>Tip: Rotate plant families to prevent soil depletion and disease buildup. Avoid planting the same family in the same bed for 3+ seasons.</em>
+                        💡 <em>Tip: Rotate plant families to prevent soil depletion and disease buildup. Avoid planting the same family in the same area for 3+ seasons.</em>
                     </p>`;
             }
         } catch (error) {
@@ -1607,22 +1637,31 @@ const App = (() => {
         }
 
         container.innerHTML = entries.map(entry => {
-            const date = new Date(entry.date);
-            const dateStr = date.toLocaleDateString('en-GB', {
-                weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
-            });
-            const timeStr = date.toLocaleTimeString('en-GB', {
-                hour: '2-digit', minute: '2-digit'
-            });
+            // Handle both date-only 'YYYY-MM-DD' and legacy ISO datetime strings
+            let dateStr;
+            if (entry.date && entry.date.length === 10) {
+                const [y, m, d] = entry.date.split('-').map(Number);
+                dateStr = new Date(y, m - 1, d).toLocaleDateString('en-GB', {
+                    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+                });
+            } else {
+                dateStr = new Date(entry.date).toLocaleDateString('en-GB', {
+                    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+                });
+            }
             const icon = CATEGORY_ICONS[entry.category] || '📝';
             const categoryLabel = entry.category ? entry.category.charAt(0).toUpperCase() + entry.category.slice(1) : 'General';
+            const valueBadge = entry.value != null
+                ? `<span class="journal-value-badge">${entry.value} ${entry.valueUnit || ''}</span>`
+                : '';
 
             return `
                 <div class="journal-entry">
                     <div class="journal-entry-header">
                         <div class="journal-entry-meta">
                             <span class="journal-category-badge" data-category="${entry.category}">${icon} ${categoryLabel}</span>
-                            <span class="journal-date">${dateStr} at ${timeStr}</span>
+                            ${valueBadge}
+                            <span class="journal-date">${dateStr}</span>
                         </div>
                         <button class="btn btn-danger btn-sm btn-delete-entry" data-id="${entry.id}" title="Delete entry">×</button>
                     </div>
@@ -1639,7 +1678,9 @@ const App = (() => {
                 try {
                     await API.deleteJournalEntry(btn.dataset.id);
                     showToast('Entry deleted', 'info');
-                    openJournal(); // Refresh
+                    // Refresh entries without re-opening modal
+                    const data = await API.getJournal();
+                    renderJournalEntries(data.entries || []);
                 } catch (error) {
                     showToast('Failed to delete: ' + error.message, 'error');
                 }
@@ -1654,12 +1695,30 @@ const App = (() => {
     }
 
     function setupJournalHandlers() {
-        document.getElementById('btn-journal')?.addEventListener('click', openJournal);
+        const VALUE_CATEGORIES = new Set(['harvest', 'planting']);
+
+        document.getElementById('btn-journal')?.addEventListener('click', () => {
+            // Default date to today
+            const dateEl = document.getElementById('journal-date');
+            if (dateEl && !dateEl.value) {
+                dateEl.value = new Date().toISOString().split('T')[0];
+            }
+            openJournal();
+        });
+
+        // Show/hide value row based on category
+        document.getElementById('journal-category')?.addEventListener('change', (e) => {
+            const row = document.getElementById('journal-value-row');
+            if (row) row.style.display = VALUE_CATEGORIES.has(e.target.value) ? 'flex' : 'none';
+        });
 
         document.getElementById('btn-add-journal')?.addEventListener('click', async () => {
             const title = document.getElementById('journal-title').value.trim();
             const content = document.getElementById('journal-content').value.trim();
             const category = document.getElementById('journal-category').value;
+            const date = document.getElementById('journal-date').value;
+            const value = document.getElementById('journal-value').value;
+            const valueUnit = document.getElementById('journal-value-unit').value;
 
             if (!content) {
                 showToast('Please write something in your journal entry', 'error');
@@ -1667,11 +1726,13 @@ const App = (() => {
             }
 
             try {
-                await API.addJournalEntry(title, content, category);
+                await API.addJournalEntry(title, content, category, date, value || null, value ? valueUnit : '');
                 // Clear form
                 document.getElementById('journal-title').value = '';
                 document.getElementById('journal-content').value = '';
                 document.getElementById('journal-category').value = 'general';
+                document.getElementById('journal-value').value = '';
+                document.getElementById('journal-value-row').style.display = 'none';
                 showToast('Journal entry added!', 'success');
                 // Refresh entries
                 const data = await API.getJournal();

@@ -39,7 +39,10 @@ const State = (() => {
      * Save current beds state to history
      */
     function saveHistory() {
-        const snapshot = JSON.stringify(state.beds);
+        const snapshot = JSON.stringify(state.beds.map(bed => ({
+            ...bed,
+            borders: Array.from(bed.borders),
+        })));
         // Avoid duplicates
         if (history.length > 0 && history[history.length - 1] === snapshot) {
             return;
@@ -65,7 +68,10 @@ const State = (() => {
         // Restore previous state
         const previousState = history[history.length - 1];
         if (previousState) {
-            state.beds = JSON.parse(previousState);
+            state.beds = JSON.parse(previousState).map(bed => ({
+                ...bed,
+                borders: new Set(bed.borders || []),
+            }));
             emit('bedsChange', state.beds);
             emit('historyChange', { canUndo: history.length > 1 });
             return true;
@@ -157,7 +163,7 @@ const State = (() => {
         saveHistory(); // Save before mutation
         const bed = {
             id: generateBedId(),
-            name: name || `Bed ${state.beds.length + 1}`,
+            name: name || `Area ${state.beds.length + 1}`,
             width: parseInt(width) || 4,
             height: parseInt(height) || 2,
             cellSize: parseInt(cellSize) || 30,
@@ -510,8 +516,9 @@ const State = (() => {
 
     /**
      * Set border state explicitly
+     * @param {boolean} [silent] - Skip emitting bedsChange (for batched updates)
      */
-    function setBorder(bedId, cellIndex, side, active) {
+    function setBorder(bedId, cellIndex, side, active, silent = false) {
         const bed = getBed(bedId);
         if (!bed) return;
 
@@ -524,7 +531,7 @@ const State = (() => {
         }
 
         emit('borderToggled', { bedId, cellIndex, side, active });
-        emit('bedsChange', state.beds);
+        if (!silent) emit('bedsChange', state.beds);
     }
 
     /**
@@ -579,22 +586,23 @@ const State = (() => {
         // If all exist, remove them (toggle off)
         const shouldAdd = !allExist;
 
-        // Apply borders
+        // Apply borders (silent to batch into one bedsChange at the end)
         for (let x = minX; x <= maxX; x++) {
             const topIdx = minY * bed.width + x;
             const bottomIdx = maxY * bed.width + x;
-            setBorder(bedId, topIdx, 'top', shouldAdd);
-            setBorder(bedId, bottomIdx, 'bottom', shouldAdd);
+            setBorder(bedId, topIdx, 'top', shouldAdd, true);
+            setBorder(bedId, bottomIdx, 'bottom', shouldAdd, true);
         }
 
         for (let y = minY; y <= maxY; y++) {
             const leftIdx = y * bed.width + minX;
             const rightIdx = y * bed.width + maxX;
-            setBorder(bedId, leftIdx, 'left', shouldAdd);
-            setBorder(bedId, rightIdx, 'right', shouldAdd);
+            setBorder(bedId, leftIdx, 'left', shouldAdd, true);
+            setBorder(bedId, rightIdx, 'right', shouldAdd, true);
         }
 
         emit('bordersApplied', { bedId, minX, minY, maxX, maxY, added: shouldAdd });
+        emit('bedsChange', state.beds);
     }
 
     // ==========================================

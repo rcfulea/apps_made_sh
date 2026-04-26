@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Garden Planner</title>
-    <meta name="description" content="Plan your garden with drag-and-drop beds, plants, and borders">
+    <meta name="description" content="Plan your garden with drag-and-drop beds, plants, and outlines">
     <link rel="stylesheet" href="/styles/main.css">
     <link rel="stylesheet" href="/styles/components.css">
     <link rel="stylesheet" href="/styles/garden.css">
@@ -104,7 +104,7 @@
             <section class="garden-section">
                 <div class="garden-toolbar">
                     <div class="toolbar-group">
-                        <button id="btn-add-bed" class="btn btn-primary">+ Add Bed</button>
+                        <button id="btn-add-bed" class="btn btn-primary">+ Add Area</button>
                         <button id="btn-undo" class="btn btn-secondary" title="Undo (Ctrl+Z)">↶ Undo</button>
                         <button id="btn-save" class="btn btn-secondary">Save</button>
                         <button id="btn-load" class="btn btn-secondary">Load</button>
@@ -115,7 +115,7 @@
                     </div>
                     <div class="toolbar-group">
                         <button id="toggle-sfg" class="toggle-btn">📐 Square Foot</button>
-                        <button id="toggle-borders" class="toggle-btn">🔲 Border Mode</button>
+                        <button id="toggle-borders" class="toggle-btn">🔲 Outline Mode</button>
                     </div>
                 </div>
                 <div id="garden-area" class="garden-area"></div>
@@ -137,55 +137,53 @@
 
     <!-- Modals -->
     <div id="modal-overlay" class="modal-overlay hidden">
-        <!-- Add Bed Modal -->
+        <!-- Add Area Modal -->
         <div id="modal-add-bed" class="modal hidden">
             <div class="modal-header">
-                <h3>Add New Bed</h3>
+                <h3>Add New Area</h3>
                 <button class="btn-close modal-close">×</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="bed-name">Bed Name</label>
-                    <input type="text" id="bed-name" placeholder="Raised Bed 1">
+                    <label for="bed-name">Area Name</label>
+                    <input type="text" id="bed-name" placeholder="Front Border">
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="bed-width">Width (cells)</label>
-                        <input type="number" id="bed-width" value="4" min="1" max="20">
+                        <label for="bed-width">Width (m)</label>
+                        <input type="number" id="bed-width" value="1.2" min="0.1" step="0.1">
                     </div>
                     <div class="form-group">
-                        <label for="bed-height">Height (cells)</label>
-                        <input type="number" id="bed-height" value="2" min="1" max="20">
+                        <label for="bed-height">Height (m)</label>
+                        <input type="number" id="bed-height" value="0.6" min="0.1" step="0.1">
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="bed-cell-size">Cell Size (cm)</label>
-                    <input type="number" id="bed-cell-size" value="30" min="10" max="100" step="5">
-                </div>
+                <p id="bed-cells-preview" style="margin:4px 0 0;font-size:13px;color:#666;">→ 4 × 2 sq ft cells</p>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary modal-close">Cancel</button>
-                <button id="btn-confirm-add-bed" class="btn btn-primary">Add Bed</button>
+                <button id="btn-confirm-add-bed" class="btn btn-primary">Add Area</button>
             </div>
         </div>
 
-        <!-- Resize Bed Modal -->
+        <!-- Resize Area Modal -->
         <div id="modal-resize-bed" class="modal hidden">
             <div class="modal-header">
-                <h3>Resize Bed</h3>
+                <h3>Resize Area</h3>
                 <button class="btn-close modal-close">×</button>
             </div>
             <div class="modal-body">
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="resize-width">Width (cells)</label>
-                        <input type="number" id="resize-width" min="1" max="20">
+                        <label for="resize-width">Width (m)</label>
+                        <input type="number" id="resize-width" min="0.1" step="0.1">
                     </div>
                     <div class="form-group">
-                        <label for="resize-height">Height (cells)</label>
-                        <input type="number" id="resize-height" min="1" max="20">
+                        <label for="resize-height">Height (m)</label>
+                        <input type="number" id="resize-height" min="0.1" step="0.1">
                     </div>
                 </div>
+                <p id="resize-cells-preview" style="margin:4px 0 0;font-size:13px;color:#666;"></p>
                 <p id="resize-warning" class="warning hidden">⚠️ Some plants will be removed.</p>
             </div>
             <div class="modal-footer">
@@ -397,7 +395,7 @@
         <!-- Bed Notes Modal -->
         <div id="modal-notes" class="modal hidden">
             <div class="modal-header">
-                <h3>📝 Bed Notes</h3>
+                <h3>📝 Area Notes</h3>
                 <button class="btn-close modal-close">×</button>
             </div>
             <div class="modal-body">
@@ -433,8 +431,8 @@
                 <!-- Add Entry Form -->
                 <div class="journal-add-form">
                     <div style="display:flex;gap:8px;margin-bottom:8px;">
-                        <input type="text" id="journal-title" placeholder="Entry title (optional)" style="flex:1;">
-                        <select id="journal-category">
+                        <input type="date" id="journal-date" style="flex:0 0 auto;">
+                        <select id="journal-category" style="flex:1;">
                             <option value="general">📝 General</option>
                             <option value="observation">👁️ Observation</option>
                             <option value="planting">🌱 Planting</option>
@@ -445,7 +443,19 @@
                             <option value="amendment">🧪 Soil/Amendment</option>
                         </select>
                     </div>
-                    <textarea id="journal-content" rows="3" placeholder="What happened in the garden today?"></textarea>
+                    <input type="text" id="journal-title" placeholder="Entry title (optional)" style="width:100%;box-sizing:border-box;margin-bottom:8px;">
+                    <div id="journal-value-row" style="display:none;gap:8px;margin-bottom:8px;align-items:center;">
+                        <input type="number" id="journal-value" placeholder="Amount" step="0.1" min="0" style="width:90px;">
+                        <select id="journal-value-unit">
+                            <option value="kg">kg</option>
+                            <option value="g">g</option>
+                            <option value="lb">lb</option>
+                            <option value="count">count</option>
+                            <option value="plants">plants</option>
+                            <option value="seeds">seeds</option>
+                        </select>
+                    </div>
+                    <textarea id="journal-content" rows="3" placeholder="Notes..."></textarea>
                     <button id="btn-add-journal" class="btn btn-primary" style="margin-top:8px;">Add Entry</button>
                 </div>
                 <!-- Entries List -->

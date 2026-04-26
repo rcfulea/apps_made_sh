@@ -18,6 +18,9 @@ const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const GARDENS_FILE = path.join(DATA_DIR, 'gardens.json');
 const PLANTS_FILE = path.join(DATA_DIR, 'plants.json');
 const JOURNAL_FILE = path.join(DATA_DIR, 'journal.json');
+const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
+
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
@@ -59,7 +62,13 @@ function saveGardens() {
 // Session Management
 // ==========================================
 
-const sessions = {};
+// Load persisted sessions, dropping any that already expired
+const now = Date.now();
+const sessions = Object.fromEntries(
+    Object.entries(loadJSON(SESSIONS_FILE, {}))
+        .filter(([, s]) => s.expiresAt > now)
+);
+saveJSON(SESSIONS_FILE, sessions); // persist the cleaned-up state
 
 function generateSessionId() {
     return crypto.randomBytes(32).toString('hex');
@@ -80,14 +89,20 @@ function parseCookies(cookieHeader) {
 function getSession(req) {
     const cookies = parseCookies(req.headers.cookie);
     const sid = cookies.sid;
-    return sid && sessions[sid] ? sessions[sid] : null;
+    if (!sid || !sessions[sid]) return null;
+    if (sessions[sid].expiresAt < Date.now()) {
+        delete sessions[sid];
+        return null;
+    }
+    return sessions[sid];
 }
 
 function createSession(res, username, isAdmin) {
     const sid = generateSessionId();
-    sessions[sid] = { username, isAdmin };
+    sessions[sid] = { username, isAdmin, expiresAt: Date.now() + SESSION_TTL_MS };
 
-    res.setHeader('Set-Cookie', `sid=${sid}; HttpOnly; Path=/; SameSite=Lax`);
+    saveJSON(SESSIONS_FILE, sessions);
+    res.setHeader('Set-Cookie', `sid=${sid}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${SESSION_TTL_MS / 1000}`);
     return sessions[sid];
 }
 
@@ -97,6 +112,7 @@ function destroySession(req, res) {
 
     if (sid && sessions[sid]) {
         delete sessions[sid];
+        saveJSON(SESSIONS_FILE, sessions);
     }
 
     res.setHeader('Set-Cookie', 'sid=; HttpOnly; Path=/; Max-Age=0');
@@ -550,7 +566,7 @@ function handleAPI(req, res) {
             }
 
             if (pathname === '/api/journal' && method === 'POST') {
-                const { title, content, category } = body;
+                const { title, content, category, date, value, valueUnit } = await parseBody();
                 if (!content) return sendError('Content is required', 400);
 
                 const allJournals = loadJSON(JOURNAL_FILE, {});
@@ -558,10 +574,12 @@ function handleAPI(req, res) {
 
                 const entry = {
                     id: Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5),
-                    date: new Date().toISOString(),
+                    date: date || new Date().toISOString().split('T')[0],
                     title: title || '',
                     content,
                     category: category || 'general',
+                    value: value != null && value !== '' ? parseFloat(value) : null,
+                    valueUnit: valueUnit || '',
                 };
 
                 allJournals[session.username].unshift(entry);

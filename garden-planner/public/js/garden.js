@@ -33,7 +33,7 @@ const Garden = (() => {
         <div class="garden-empty">
           <div class="garden-empty-icon">🌱</div>
           <h3>No garden beds yet</h3>
-          <p>Click "Add Bed" to create your first bed</p>
+          <p>Click "Add Area" to create your first area</p>
         </div>
       `;
             return;
@@ -81,7 +81,7 @@ const Garden = (() => {
         <div class="bed-header">
           <span class="bed-name">${bed.name}</span>
           <div class="bed-actions">
-            <button class="btn btn-notes" data-action="notes" title="Bed Notes">${bed.notes ? '📝' : '🗒️'}</button>
+            <button class="btn btn-notes" data-action="notes" title="Area Notes">${bed.notes ? '📝' : '🗒️'}</button>
             <button class="btn btn-rename" data-action="rename">Rename</button>
             <button class="btn btn-resize" data-action="resize">Resize</button>
             <button class="btn btn-delete" data-action="delete">×</button>
@@ -168,7 +168,7 @@ const Garden = (() => {
                 break;
 
             case 'delete':
-                if (confirm('Delete this bed?')) {
+                if (confirm('Delete this area?')) {
                     State.removeBed(bedId);
                 }
                 break;
