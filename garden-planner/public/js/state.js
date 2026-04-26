@@ -226,6 +226,8 @@ const State = (() => {
         const bed = getBed(bedId);
         if (!bed) return;
 
+        saveHistory();
+
         const oldWidth = bed.width;
         const oldHeight = bed.height;
         const newCells = [];
@@ -233,11 +235,9 @@ const State = (() => {
         for (let y = 0; y < newHeight; y++) {
             for (let x = 0; x < newWidth; x++) {
                 if (x < oldWidth && y < oldHeight) {
-                    // Copy existing cell
                     const oldIndex = y * oldWidth + x;
                     newCells.push(bed.cells[oldIndex]);
                 } else {
-                    // New cell
                     newCells.push(null);
                 }
             }
@@ -247,21 +247,22 @@ const State = (() => {
         bed.height = newHeight;
         bed.cells = newCells;
 
-        // Clean up borders that are out of bounds
+        // Remap border keys from old cell indices to new cell indices
         const newBorders = new Set();
         bed.borders.forEach(border => {
             const [index, side] = border.split('-');
             const idx = parseInt(index);
-            const x = idx % newWidth;
-            const y = Math.floor(idx / newWidth);
+            const x = idx % oldWidth;  // recover x,y using OLD width
+            const y = Math.floor(idx / oldWidth);
             if (x < newWidth && y < newHeight) {
-                newBorders.add(border);
+                newBorders.add(`${y * newWidth + x}-${side}`);
             }
         });
         bed.borders = newBorders;
 
         emit('bedResized', bed);
         emit('bedsChange', state.beds);
+        saveHistory();
     }
 
     // ==========================================

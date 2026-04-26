@@ -6,6 +6,11 @@
 const Garden = (() => {
     const gardenArea = document.getElementById('garden-area');
 
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
     /**
      * Initialize garden module
      */
@@ -65,11 +70,11 @@ const Garden = (() => {
              data-cell-index="${index}"
              data-visible="${isVisible}">
           ${plant ? `
-            <img class="cell-plant" 
-                 src="icons/${plant.file || plant.id + '.svg'}" 
-                 alt="${plant.label}">
+            <img class="cell-plant"
+                 src="icons/${escapeHtml(plant.file || plant.id + '.svg')}"
+                 alt="${escapeHtml(plant.label)}">
             ${sfgMode && plant.perSquare ? `<span class="cell-badge">${plant.perSquare}</span>` : ''}
-            ${activePlanting.variety ? `<span class="cell-variety">${activePlanting.variety}</span>` : ''}
+            ${activePlanting.variety ? `<span class="cell-variety">${escapeHtml(activePlanting.variety)}</span>` : ''}
           ` : ''}
           ${hasMultiple ? `<span class="cell-multi-badge" title="${allPlantings.length} plantings">${allPlantings.length}</span>` : ''}
         </div>
@@ -79,7 +84,7 @@ const Garden = (() => {
         return `
       <div class="bed" data-bed-id="${bed.id}">
         <div class="bed-header">
-          <span class="bed-name">${bed.name}</span>
+          <span class="bed-name">${escapeHtml(bed.name)}</span>
           <div class="bed-actions">
             <button class="btn btn-notes" data-action="notes" title="Area Notes">${bed.notes ? '📝' : '🗒️'}</button>
             <button class="btn btn-rename" data-action="rename">Rename</button>

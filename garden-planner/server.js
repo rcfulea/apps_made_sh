@@ -619,6 +619,13 @@ function handleAPI(req, res) {
                 const allJournals = loadJSON(JOURNAL_FILE, {});
                 const userEntries = allJournals[session.username] || [];
 
+                // Clean up photo file if present
+                const entry = userEntries.find(e => e.id === entryId);
+                if (entry?.photo) {
+                    const photoPath = path.join(PUBLIC_DIR, entry.photo);
+                    try { fs.unlinkSync(photoPath); } catch {}
+                }
+
                 allJournals[session.username] = userEntries.filter(e => e.id !== entryId);
                 saveJSON(JOURNAL_FILE, allJournals);
                 return sendJSON({ success: true });
