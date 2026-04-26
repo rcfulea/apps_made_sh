@@ -23,6 +23,7 @@ import configparser
 from pathlib import Path
 
 OUTPUT = sys.argv[1] if len(sys.argv) > 1 else "session.json"
+PROFILE_OVERRIDE = Path(sys.argv[2]) if len(sys.argv) > 2 else None
 DOMAINS = ("octopus.energy", ".octopus.energy", "auth.octopus.energy", ".auth.octopus.energy")
 
 SAMESITE_MAP = {0: "None", 1: "Lax", 2: "Strict"}
@@ -100,7 +101,7 @@ def extract_cookies(profile_dir):
     return cookies
 
 
-profile = find_firefox_profile()
+profile = PROFILE_OVERRIDE if PROFILE_OVERRIDE else find_firefox_profile()
 print(f"Using Firefox profile: {profile}")
 
 cookies = extract_cookies(profile)
