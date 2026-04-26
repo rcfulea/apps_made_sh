@@ -7,18 +7,18 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      - OCTOPUS_EMAIL=${OCTOPUS_EMAIL}
-      - OCTOPUS_PASSWORD=${OCTOPUS_PASSWORD}
       - OCTOPUS_ACCOUNT_NUMBER=${OCTOPUS_ACCOUNT_NUMBER}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
-      - POLL_INTERVAL=${POLL_INTERVAL:-300}
+      - SESSION_FILE=${SESSION_FILE:-/app/logs/session.json}
+      - POLL_INTERVAL=${POLL_INTERVAL:-60}
+      - WINDOW_START_HOUR=${WINDOW_START_HOUR:-4}
+      - WINDOW_END_HOUR=${WINDOW_END_HOUR:-9}
+      - OFFER_TARGET=${OFFER_TARGET:-}
       - LOG_DIR=/app/logs
     volumes:
       - octopus_logs:/app/logs
-    # Chromium needs extra shared memory to run stably
     shm_size: '256mb'
-    # Allow Chromium's sandbox to work inside Docker
     security_opt:
       - seccomp:unconfined
     logging:
