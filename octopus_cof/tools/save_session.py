@@ -1,42 +1,113 @@
 """
-Run this script on a machine with a display to log in manually and save
-the browser session to a file. Copy the output session.json to the server
-at the path set by SESSION_FILE in .env (default: /app/session.json).
+Extracts the Octopus Energy session from your logged-in Firefox profile
+and saves it as a Playwright-compatible session.json.
+
+Requirements:
+- Be logged into octopus.energy in Firefox before running this.
+- Close Firefox before running (or cookies.sqlite may be locked).
 
 Usage:
     python tools/save_session.py [output_path]
 
 Default output: ./session.json
+Then copy session.json to the server next to docker-compose.yml.
 """
 
 import sys
 import os
-from playwright.sync_api import sync_playwright
+import json
+import shutil
+import sqlite3
+import tempfile
+import configparser
+from pathlib import Path
 
 OUTPUT = sys.argv[1] if len(sys.argv) > 1 else "session.json"
-LOGIN_URL = "https://octopus.energy/login/"
-DASHBOARD_URL = "https://octopus.energy/dashboard/"
-USER_AGENT = (
-    "Mozilla/5.0 (X11; Linux x86_64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/123.0.0.0 Safari/537.36"
-)
+DOMAINS = ("octopus.energy", ".octopus.energy", "auth.octopus.energy", ".auth.octopus.energy")
 
-print(f"Opening browser — log in manually, including any CAPTCHA.")
-print(f"Session will be saved to: {OUTPUT}")
+SAMESITE_MAP = {0: "None", 1: "Lax", 2: "Strict"}
 
-with sync_playwright() as p:
-    browser = p.chromium.launch(headless=False)
-    context = browser.new_context(
-        user_agent=USER_AGENT,
-        viewport={"width": 1280, "height": 900},
-    )
-    page = context.new_page()
-    page.goto(LOGIN_URL)
 
-    print("Waiting for dashboard URL after login...")
-    page.wait_for_url(f"{DASHBOARD_URL}**", timeout=300_000)
+def find_firefox_profile():
+    profiles_ini = Path.home() / ".mozilla" / "firefox" / "profiles.ini"
+    if not profiles_ini.exists():
+        raise FileNotFoundError(f"Firefox profiles.ini not found at {profiles_ini}")
 
-    context.storage_state(path=OUTPUT)
-    print(f"Session saved to {OUTPUT}")
-    browser.close()
+    config = configparser.ConfigParser()
+    config.read(profiles_ini)
+
+    # Prefer Default=1 profile
+    for section in config.sections():
+        if config.get(section, "Default", fallback=None) == "1":
+            path = config.get(section, "Path")
+            is_relative = config.get(section, "IsRelative", fallback="1") == "1"
+            base = profiles_ini.parent
+            return base / path if is_relative else Path(path)
+
+    # Fall back to first Profile section
+    for section in config.sections():
+        if section.startswith("Profile"):
+            path = config.get(section, "Path", fallback=None)
+            if path:
+                is_relative = config.get(section, "IsRelative", fallback="1") == "1"
+                base = profiles_ini.parent
+                return base / path if is_relative else Path(path)
+
+    raise RuntimeError("No Firefox profile found")
+
+
+def extract_cookies(profile_dir):
+    cookies_db = profile_dir / "cookies.sqlite"
+    if not cookies_db.exists():
+        raise FileNotFoundError(f"cookies.sqlite not found in {profile_dir}")
+
+    # Copy to temp file — Firefox may have a WAL lock on the original
+    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as tmp:
+        tmp_path = tmp.name
+    shutil.copy2(cookies_db, tmp_path)
+
+    try:
+        conn = sqlite3.connect(tmp_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT name, value, host, path, expiry, isSecure, isHttpOnly, sameSite
+            FROM moz_cookies
+            WHERE host LIKE '%octopus.energy'
+        """)
+        rows = cur.fetchall()
+        conn.close()
+    finally:
+        os.unlink(tmp_path)
+
+    cookies = []
+    for row in rows:
+        cookies.append({
+            "name": row["name"],
+            "value": row["value"],
+            "domain": row["host"],
+            "path": row["path"],
+            "expires": row["expiry"],
+            "httpOnly": bool(row["isHttpOnly"]),
+            "secure": bool(row["isSecure"]),
+            "sameSite": SAMESITE_MAP.get(row["sameSite"], "Lax"),
+        })
+    return cookies
+
+
+profile = find_firefox_profile()
+print(f"Using Firefox profile: {profile}")
+
+cookies = extract_cookies(profile)
+print(f"Found {len(cookies)} cookies for octopus.energy")
+
+if not cookies:
+    print("ERROR: No cookies found. Make sure you are logged into octopus.energy in Firefox.")
+    sys.exit(1)
+
+state = {"cookies": cookies, "origins": []}
+with open(OUTPUT, "w") as f:
+    json.dump(state, f, indent=2)
+
+print(f"Session saved to {OUTPUT}")
+print("Copy this file to the server next to docker-compose.yml as session.json")
