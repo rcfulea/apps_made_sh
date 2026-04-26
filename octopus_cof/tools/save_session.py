@@ -29,9 +29,14 @@ SAMESITE_MAP = {0: "None", 1: "Lax", 2: "Strict"}
 
 
 def find_firefox_profile():
-    profiles_ini = Path.home() / ".mozilla" / "firefox" / "profiles.ini"
-    if not profiles_ini.exists():
-        raise FileNotFoundError(f"Firefox profiles.ini not found at {profiles_ini}")
+    candidates = [
+        Path.home() / ".mozilla" / "firefox" / "profiles.ini",
+        Path.home() / ".config" / "mozilla" / "firefox" / "profiles.ini",
+        Path.home() / ".var" / "app" / "org.mozilla.firefox" / ".mozilla" / "firefox" / "profiles.ini",
+    ]
+    profiles_ini = next((p for p in candidates if p.exists()), None)
+    if not profiles_ini:
+        raise FileNotFoundError(f"Firefox profiles.ini not found. Tried: {[str(p) for p in candidates]}")
 
     config = configparser.ConfigParser()
     config.read(profiles_ini)
