@@ -89,9 +89,13 @@ def extract_cookies(profile_dir):
     cookies = []
     for row in rows:
         expiry = row["expiry"]
-        # Playwright requires expires = -1 (session) or positive unix timestamp
+        # Playwright requires expires = -1 (session) or positive unix timestamp in seconds.
+        # Firefox stores expiry in milliseconds — divide by 1000 if value looks like ms
+        # (13 digits vs 10 digits for seconds)
         if expiry <= 0:
             expiry = -1
+        elif expiry > 9_999_999_999:
+            expiry = expiry // 1000
         cookies.append({
             "name": row["name"],
             "value": row["value"],
