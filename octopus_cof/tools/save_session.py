@@ -88,12 +88,16 @@ def extract_cookies(profile_dir):
 
     cookies = []
     for row in rows:
+        expiry = row["expiry"]
+        # Playwright requires expires = -1 (session) or positive unix timestamp
+        if expiry <= 0:
+            expiry = -1
         cookies.append({
             "name": row["name"],
             "value": row["value"],
             "domain": row["host"],
             "path": row["path"],
-            "expires": row["expiry"],
+            "expires": expiry,
             "httpOnly": bool(row["isHttpOnly"]),
             "secure": bool(row["isSecure"]),
             "sameSite": SAMESITE_MAP.get(row["sameSite"], "Lax"),
