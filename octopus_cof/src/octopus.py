@@ -27,6 +27,10 @@ OFFER_ALIASES = {
     "greggs": "regular hot drink",
 }
 
+# When no OFFER_TARGET set, only claim cards matching one of these substrings
+# (offer-group/925 mixes drink + non-drink offers)
+DRINK_KEYWORDS = set(OFFER_ALIASES.values())
+
 
 class RenderFailure(Exception):
     """Page loaded but offer cards never appeared — likely session/server issue."""
@@ -50,6 +54,8 @@ class OctopusClient:
         if target:
             filter_text = OFFER_ALIASES.get(target.lower(), target.lower())
             logger.info(f"Targeting offer matching: '{filter_text}'")
+        else:
+            logger.info(f"No target set — will claim first drink offer matching: {DRINK_KEYWORDS}")
         page = self.session.page
         logger.info("Navigating to offer group page...")
         page.goto(self._offer_url, wait_until="domcontentloaded", timeout=60_000)
@@ -72,8 +78,13 @@ class OctopusClient:
             card_text = card.inner_text().strip()
             logger.info(f"Offer card {i}: {card_text[:200]}")
 
-            if filter_text and filter_text not in card_text.lower():
-                continue
+            if filter_text:
+                if filter_text not in card_text.lower():
+                    continue
+            else:
+                if not any(kw in card_text.lower() for kw in DRINK_KEYWORDS):
+                    logger.info(f"Card {i} skipped — not a drink offer")
+                    continue
 
             # "Reveal offer" is an <a> tag, not a <button>
             btn = None
