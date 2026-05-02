@@ -72,17 +72,21 @@ class OctopusClient:
             card_text = card.inner_text().strip()
             logger.info(f"Offer card {i}: {card_text[:200]}")
 
-            btn = card.query_selector("button")
-            if not btn:
-                continue
-
-            btn_text = btn.inner_text().strip().lower()
-            is_disabled = btn.get_attribute("disabled") is not None
-
             if filter_text and filter_text not in card_text.lower():
                 continue
 
-            if btn_text == CLAIMABLE_BUTTON and not is_disabled:
+            # Find the specific "Reveal offer" button rather than the first button in the card
+            buttons = card.query_selector_all("button")
+            btn = None
+            for b in buttons:
+                b_text = b.inner_text().strip().lower()
+                b_disabled = b.get_attribute("disabled") is not None
+                logger.info(f"  button: '{b_text}' disabled={b_disabled}")
+                if b_text == CLAIMABLE_BUTTON and not b_disabled:
+                    btn = b
+                    break
+
+            if btn is not None:
                 logger.info(f"Card {i} AVAILABLE — clicking '{btn.inner_text().strip()}'...")
                 btn.click()
 
