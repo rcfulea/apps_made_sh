@@ -75,32 +75,38 @@ class OctopusClient:
             if filter_text and filter_text not in card_text.lower():
                 continue
 
-            # Find the specific "Reveal offer" button rather than the first button in the card
-            buttons = card.query_selector_all("button")
+            # "Reveal offer" is an <a> tag, not a <button>
             btn = None
-            for b in buttons:
+            for b in card.query_selector_all("button, a"):
                 b_text = b.inner_text().strip().lower()
-                b_disabled = b.get_attribute("disabled") is not None
-                logger.info(f"  button: '{b_text}' disabled={b_disabled}")
-                if b_text == CLAIMABLE_BUTTON and not b_disabled:
+                if b_text == CLAIMABLE_BUTTON:
                     btn = b
                     break
 
             if btn is not None:
                 logger.info(f"Card {i} AVAILABLE — clicking '{btn.inner_text().strip()}'...")
                 btn.click()
+                page.wait_for_load_state("domcontentloaded", timeout=15_000)
+                page.wait_for_timeout(1000)
 
-                # Wait for QR code page ("Present your QR code to the Barista")
-                # There's a loading screen first so give it up to 15s
+                # Detail page has an "Activate offer" button — click it to get the QR code
+                activate = page.query_selector("button:has-text('Activate offer')")
+                if activate:
+                    logger.info("Clicking 'Activate offer'...")
+                    activate.click()
+                    page.wait_for_load_state("domcontentloaded", timeout=15_000)
+                    page.wait_for_timeout(1000)
+
                 try:
                     page.wait_for_selector("text=Present your QR code", timeout=15_000)
+                    logger.info("QR page loaded. URL: " + page.url)
                 except Exception:
                     logger.warning("QR page text not found — screenshotting whatever is shown")
 
                 result_text = page.inner_text("body")
                 log_dir = os.environ.get("LOG_DIR", "./logs")
                 screenshot_path = os.path.join(log_dir, "claim_result.png")
-                page.screenshot(path=screenshot_path)
+                page.screenshot(path=screenshot_path, full_page=True)
                 logger.info(f"Post-claim page text (first 300): {result_text[:300]}")
                 return result_text[:500], screenshot_path
 
