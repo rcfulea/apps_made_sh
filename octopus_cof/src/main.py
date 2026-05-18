@@ -24,7 +24,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL", 60))
-RELOGIN_INTERVAL = 4 * 60 * 60
+BROWSER_RESTART_INTERVAL = 60 * 60  # restart browser every hour to prevent memory leak
 WINDOW_START = int(os.environ.get("WINDOW_START_HOUR", 4))
 WINDOW_END = int(os.environ.get("WINDOW_END_HOUR", 9))
 # Restart browser after this many consecutive render failures
@@ -95,7 +95,7 @@ def main():
     target = os.environ.get("OFFER_TARGET", "").strip() or None
     target_label = target or "any available"
     notifier.send(f"Octopus voucher tracker started. Target: {target_label}. Window: {WINDOW_START}:00–{WINDOW_END}:00.")
-    last_login = time.time()
+    last_browser_restart = time.time()
     consecutive_render_failures = 0
 
     while True:
@@ -110,10 +110,10 @@ def main():
             return
 
         try:
-            if time.time() - last_login > RELOGIN_INTERVAL:
-                logger.info("Periodic session re-verify...")
-                session.relogin()
-                last_login = time.time()
+            if time.time() - last_browser_restart > BROWSER_RESTART_INTERVAL:
+                logger.info("Hourly browser restart to free memory...")
+                session, client = restart_browser(session, session_file, account_number)
+                last_browser_restart = time.time()
 
             result, screenshot_path = client.check_and_claim(target)
             consecutive_render_failures = 0  # page loaded fine
@@ -156,7 +156,7 @@ def main():
                 notifier.send(f"Page failed to render {RENDER_FAIL_THRESHOLD}x in a row. Restarting browser.")
                 try:
                     session, client = restart_browser(session, session_file, account_number)
-                    last_login = time.time()
+                    last_browser_restart = time.time()
                     consecutive_render_failures = 0
                     logger.info("Browser restarted after render failures.")
                 except SessionExpired:
@@ -177,7 +177,7 @@ def main():
 
             try:
                 session, client = restart_browser(session, session_file, account_number)
-                last_login = time.time()
+                last_browser_restart = time.time()
                 logger.info("Browser session recovered successfully.")
             except SessionExpired:
                 notifier.send(

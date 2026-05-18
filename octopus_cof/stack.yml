@@ -19,6 +19,8 @@ services:
     volumes:
       - octopus_logs:/app/logs
     shm_size: '256mb'
+    mem_limit: 512m
+    memswap_limit: 512m
     security_opt:
       - seccomp:unconfined
     logging:
