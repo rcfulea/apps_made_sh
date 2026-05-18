@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL", 60))
 BROWSER_RESTART_INTERVAL = 60 * 60  # restart browser every hour to prevent memory leak
+SESSION_ALERT_INTERVAL = 60 * 60  # only send session-expired Telegram alert once per hour
 WINDOW_START = int(os.environ.get("WINDOW_START_HOUR", 4))
 WINDOW_END = int(os.environ.get("WINDOW_END_HOUR", 9))
 # Restart browser after this many consecutive render failures
@@ -44,6 +45,20 @@ def seconds_until_window():
         from datetime import timedelta
         target = (now + timedelta(days=1)).replace(hour=WINDOW_START, minute=0, second=0, microsecond=0)
     return (target - now).total_seconds()
+
+
+def notify_session_expired(notifier):
+    """Send session-expired alert at most once per SESSION_ALERT_INTERVAL seconds."""
+    flag = os.path.join(LOG_DIR, "session_expired_alerted")
+    if os.path.exists(flag):
+        if time.time() - os.path.getmtime(flag) < SESSION_ALERT_INTERVAL:
+            logger.info("Session expired but alert already sent recently — skipping.")
+            return
+    notifier.send(
+        "Octopus session expired — manual re-login required.\n"
+        "Run tools/save_session.py, copy session.json to server, restart container."
+    )
+    open(flag, "w").close()
 
 
 def start_session(session_file):
@@ -85,11 +100,13 @@ def main():
         session = start_session(session_file)
     except SessionExpired as e:
         logger.error(f"Session expired on startup: {e}")
-        notifier.send(
-            "Octopus session expired — manual re-login required.\n"
-            "Run tools/save_session.py, copy session.json to server, restart container."
-        )
+        notify_session_expired(notifier)
         return
+
+    # Session valid — clear any stale expired-alert flag
+    flag = os.path.join(LOG_DIR, "session_expired_alerted")
+    if os.path.exists(flag):
+        os.remove(flag)
 
     client = OctopusClient(account_number=account_number, session=session)
     target = os.environ.get("OFFER_TARGET", "").strip() or None
