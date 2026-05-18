@@ -101,12 +101,19 @@ class OctopusClient:
                 page.wait_for_timeout(1000)
 
                 # Detail page has an "Activate offer" button — click it to get the QR code
-                activate = page.query_selector("button:has-text('Activate offer')")
+                try:
+                    activate = page.wait_for_selector("button:has-text('Activate offer')", timeout=10_000)
+                except Exception:
+                    activate = None
+
                 if activate:
+                    activate.scroll_into_view_if_needed()
                     logger.info("Clicking 'Activate offer'...")
                     activate.click()
                     page.wait_for_load_state("domcontentloaded", timeout=15_000)
                     page.wait_for_timeout(1000)
+                else:
+                    logger.warning(f"'Activate offer' button not found on {page.url} — aborting claim")
 
                 try:
                     page.wait_for_selector("text=Present your QR code", timeout=15_000)
