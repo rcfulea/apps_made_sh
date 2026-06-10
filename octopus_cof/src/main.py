@@ -114,6 +114,7 @@ def main():
     notifier.send(f"Octopus voucher tracker started. Target: {target_label}. Window: {WINDOW_START}:00–{WINDOW_END}:00.")
     last_browser_restart = time.time()
     consecutive_render_failures = 0
+    render_fail_alerted = False
 
     while True:
         # Exit if outside active window
@@ -133,7 +134,8 @@ def main():
                 last_browser_restart = time.time()
 
             result, screenshot_path = client.check_and_claim(target)
-            consecutive_render_failures = 0  # page loaded fine
+            consecutive_render_failures = 0
+            render_fail_alerted = False
 
             if result is not None:
                 logger.info("CLAIMED! Sending notification...")
@@ -170,7 +172,9 @@ def main():
 
             if consecutive_render_failures >= RENDER_FAIL_THRESHOLD:
                 logger.warning("Too many render failures — restarting browser.")
-                notifier.send(f"Page failed to render {RENDER_FAIL_THRESHOLD}x in a row. Restarting browser.")
+                if not render_fail_alerted:
+                    notifier.send(f"Page failed to render {RENDER_FAIL_THRESHOLD}x in a row. Restarting browser.")
+                    render_fail_alerted = True
                 try:
                     session, client = restart_browser(session, session_file, account_number)
                     last_browser_restart = time.time()
