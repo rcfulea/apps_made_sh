@@ -28,7 +28,6 @@ BROWSER_RESTART_INTERVAL = 60 * 60  # restart browser every hour to prevent memo
 SESSION_ALERT_INTERVAL = 60 * 60  # only send session-expired Telegram alert once per hour
 WINDOW_START = int(os.environ.get("WINDOW_START_HOUR", 4))
 WINDOW_END = int(os.environ.get("WINDOW_END_HOUR", 9))
-# Restart browser after this many consecutive render failures
 RENDER_FAIL_THRESHOLD = 5
 
 
@@ -38,7 +37,6 @@ def seconds_until_window():
     hour = now.hour
     if WINDOW_START <= hour < WINDOW_END:
         return 0
-    # Next window start
     if hour < WINDOW_START:
         target = now.replace(hour=WINDOW_START, minute=0, second=0, microsecond=0)
     else:
@@ -110,17 +108,14 @@ def main():
 
     client = OctopusClient(account_number=account_number, session=session)
     target = os.environ.get("OFFER_TARGET", "").strip() or None
-    target_label = target or "any available"
-    notifier.send(f"Octopus voucher tracker started. Target: {target_label}. Window: {WINDOW_START}:00–{WINDOW_END}:00.")
     last_browser_restart = time.time()
     consecutive_render_failures = 0
-    render_fail_alerted = False
 
     while True:
         # Exit if outside active window
         if seconds_until_window() > 0:
             logger.info(f"Window closed ({WINDOW_END}:00 reached). Shutting down.")
-            notifier.send(f"Voucher window closed ({WINDOW_END}:00). Restarting tomorrow at {WINDOW_START}:00.")
+            notifier.send(f"No voucher claimed today. Window closed ({WINDOW_END}:00).")
             try:
                 session.stop()
             except Exception:
@@ -135,7 +130,6 @@ def main():
 
             result, screenshot_path = client.check_and_claim(target)
             consecutive_render_failures = 0
-            render_fail_alerted = False
 
             if result is not None:
                 logger.info("CLAIMED! Sending notification...")
@@ -145,7 +139,6 @@ def main():
                 else:
                     notifier.send(f"{result[:300]}\n\nCheck the Octopus app for your code.")
                 logger.info("Success — sleeping until window closes.")
-                # Sleep out the rest of the window
                 wait = seconds_until_window()
                 if wait == 0:
                     time.sleep(POLL_INTERVAL)
@@ -156,10 +149,7 @@ def main():
 
         except SessionExpired as e:
             logger.error(f"Session expired during polling: {e}")
-            notifier.send(
-                "Octopus session expired — manual re-login required.\n"
-                "Run tools/save_session.py, copy session.json to server, restart container."
-            )
+            notify_session_expired(notifier)
             try:
                 session.stop()
             except Exception:
@@ -172,28 +162,19 @@ def main():
 
             if consecutive_render_failures >= RENDER_FAIL_THRESHOLD:
                 logger.warning("Too many render failures — restarting browser.")
-                if not render_fail_alerted:
-                    notifier.send(f"Page failed to render {RENDER_FAIL_THRESHOLD}x in a row. Restarting browser.")
-                    render_fail_alerted = True
                 try:
                     session, client = restart_browser(session, session_file, account_number)
                     last_browser_restart = time.time()
                     consecutive_render_failures = 0
                     logger.info("Browser restarted after render failures.")
                 except SessionExpired:
-                    notifier.send(
-                        "Octopus session expired — manual re-login required.\n"
-                        "Run tools/save_session.py, copy session.json to server, restart container."
-                    )
+                    notify_session_expired(notifier)
                     return
                 except Exception as re:
                     logger.error(f"Browser restart failed: {re}", exc_info=True)
-                    notifier.send(f"Browser restart failed: {str(re).splitlines()[0][:150]}")
 
         except Exception as e:
-            short_err = str(e).splitlines()[0][:200]
             logger.error(f"Error: {e}", exc_info=True)
-            notifier.send(f"Poller error: {short_err}\nWill retry after recovery.")
             consecutive_render_failures = 0
 
             try:
@@ -201,15 +182,10 @@ def main():
                 last_browser_restart = time.time()
                 logger.info("Browser session recovered successfully.")
             except SessionExpired:
-                notifier.send(
-                    "Octopus session expired — manual re-login required.\n"
-                    "Run tools/save_session.py, copy session.json to server, restart container."
-                )
+                notify_session_expired(notifier)
                 return
             except Exception as re:
-                short_re = str(re).splitlines()[0][:200]
                 logger.error(f"Recovery failed: {re}", exc_info=True)
-                notifier.send(f"Recovery failed: {short_re}\nWill retry in {POLL_INTERVAL}s.")
 
         time.sleep(POLL_INTERVAL)
 
