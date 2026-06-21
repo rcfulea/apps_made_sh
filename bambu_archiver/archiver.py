@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import shutil
+import socket
 import ssl
 import tempfile
 import zipfile
@@ -100,11 +101,35 @@ def _build_metadata(state: dict, result: str, end_time: datetime, folder_name: s
     }
 
 
-def _connect_ftps(ip: str, access_code: str) -> ftplib.FTP_TLS:
+class _ImplicitFTP_TLS(ftplib.FTP_TLS):
+    """Implicit FTPS (port 990) with SSL session reuse on data channel."""
+
+    def connect(self, host="", port=0, timeout=-999, source_address=None):
+        if host:
+            self.host = host
+        if port:
+            self.port = port
+        if timeout != -999:
+            self.timeout = timeout
+        self.sock = socket.create_connection((self.host, self.port), self.timeout, source_address)
+        self.sock = self.context.wrap_socket(self.sock, server_hostname=self.host)
+        self.af = self.sock.family
+        self.file = self.sock.makefile("r", encoding=self.encoding)
+        self.welcome = self.getresp()
+        return self.welcome
+
+    def ntransfercmd(self, cmd, rest=None):
+        conn, size = ftplib.FTP.ntransfercmd(self, cmd, rest)
+        conn = self.context.wrap_socket(conn, server_hostname=self.host,
+                                        session=self.sock.session)
+        return conn, size
+
+
+def _connect_ftps(ip: str, access_code: str) -> _ImplicitFTP_TLS:
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
-    ftp = ftplib.FTP_TLS(context=ctx)
+    ftp = _ImplicitFTP_TLS(context=ctx)
     ftp.connect(ip, 990, timeout=30)
     ftp.login("bblp", access_code)
     ftp.prot_p()
@@ -112,41 +137,37 @@ def _connect_ftps(ip: str, access_code: str) -> ftplib.FTP_TLS:
 
 
 def _find_3mf(ftp: ftplib.FTP_TLS, subtask_name: str) -> str | None:
-    try:
-        ftp.cwd("/cache")
-    except ftplib.error_perm:
-        logger.warning("FTP: /cache directory not found")
-        return None
-
     lines = []
-    ftp.retrlines("LIST", lines.append)
+    ftp.retrlines("LIST /", lines.append)
 
     candidates = []
     for line in lines:
         parts = line.split()
         if len(parts) < 9:
             continue
-        fname = parts[-1]
+        fname = " ".join(parts[8:])
         if not fname.endswith(".3mf"):
             continue
         candidates.append(fname)
 
     if not candidates:
-        logger.warning("FTP: no .3mf files in /cache")
+        logger.warning("FTP: no .3mf files in /")
         return None
 
     if subtask_name:
         for name in candidates:
             if subtask_name in name or name.startswith(subtask_name):
+                logger.info("FTP: matched %s", name)
                 return name
 
-    # fall back: most recently modified = last in LIST output
+    # fall back: last in LIST output (most recently written on FAT filesystems)
+    logger.warning("FTP: no name match for %r, falling back to last file: %s", subtask_name, candidates[-1])
     return candidates[-1]
 
 
 def _download_3mf(ftp: ftplib.FTP_TLS, remote_name: str) -> bytes:
     buf = io.BytesIO()
-    ftp.retrbinary(f"RETR /cache/{remote_name}", buf.write)
+    ftp.retrbinary(f"RETR /{remote_name}", buf.write)
     return buf.getvalue()
 
 
