@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Prints — Bambu Archiver{% endblock %}
+{% block head %}
+<style>
+  .filters { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; }
+  .filters label { display: block; font-size: 0.75rem; color: var(--text-dim); margin-bottom: 3px; }
+  .filters input, .filters select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 5px; font-size: 0.875rem; }
+  .filters button { background: var(--accent); color: #000; border: none; padding: 7px 16px; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 0.875rem; }
+  .filters .reset { background: var(--surface2); color: var(--text-dim); }
+  .stats { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 1rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; transition: border-color 0.15s; }
+  .card:hover { border-color: var(--accent); }
+  .card-thumb { width: 100%; aspect-ratio: 4/3; object-fit: cover; background: var(--surface2); display: block; }
+  .card-thumb-placeholder { width: 100%; aspect-ratio: 4/3; background: var(--surface2); display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-size: 2rem; }
+  .card-body { padding: 0.75rem; }
+  .card-name { font-weight: 600; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 0.3rem; }
+  .card-meta { font-size: 0.78rem; color: var(--text-dim); display: flex; flex-wrap: wrap; gap: 0.4rem 0.8rem; margin-top: 0.4rem; }
+  .card-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; }
+  .empty { text-align: center; padding: 4rem; color: var(--text-dim); }
+</style>
+{% endblock %}
+{% block content %}
+<form method="get" action="/">
+  <div class="filters">
+    <div>
+      <label>Search</label>
+      <input name="search" value="{{ search }}" placeholder="print name…">
+    </div>
+    <div>
+      <label>Result</label>
+      <select name="result">
+        <option value="">All</option>
+        <option value="success" {% if result_filter=='success' %}selected{% endif %}>Success</option>
+        <option value="failed" {% if result_filter=='failed' %}selected{% endif %}>Failed</option>
+        <option value="cancelled" {% if result_filter=='cancelled' %}selected{% endif %}>Cancelled</option>
+      </select>
+    </div>
+    <div>
+      <label>Filament</label>
+      <select name="filament">
+        <option value="">All</option>
+        {% for f in all_filaments %}
+        <option value="{{ f }}" {% if filament_filter==f.lower() %}selected{% endif %}>{{ f }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>From</label>
+      <input type="date" name="date_from" value="{{ date_from }}">
+    </div>
+    <div>
+      <label>To</label>
+      <input type="date" name="date_to" value="{{ date_to }}">
+    </div>
+    <div>
+      <label>Sort</label>
+      <select name="sort">
+        <option value="date" {% if sort=='date' %}selected{% endif %}>Date</option>
+        <option value="duration" {% if sort=='duration' %}selected{% endif %}>Duration</option>
+        <option value="result" {% if sort=='result' %}selected{% endif %}>Result</option>
+      </select>
+    </div>
+    <button type="submit">Filter</button>
+    <a href="/"><button type="button" class="reset">Reset</button></a>
+  </div>
+</form>
+
+<p class="stats">{{ prints|length }} print{% if prints|length != 1 %}s{% endif %}</p>
+
+{% if prints %}
+<div class="grid">
+{% for p in prints %}
+<a href="/print/{{ p._folder }}" style="text-decoration:none;color:inherit">
+  <div class="card">
+    {% if p._has_thumbnail %}
+    <img class="card-thumb" src="/thumbnail/{{ p._folder }}" alt="thumbnail" loading="lazy">
+    {% else %}
+    <div class="card-thumb-placeholder">🖨</div>
+    {% endif %}
+    <div class="card-body">
+      <div class="card-row">
+        <span class="card-name">{{ p.print_name or p._folder }}</span>
+        <span class="badge badge-{{ p.result or 'unknown' }}">{{ p.result or '?' }}</span>
+      </div>
+      <div class="card-meta">
+        <span>{{ (p.end_time or '')[:10] }}</span>
+        {% if p.duration_seconds %}
+        <span>{{ (p.duration_seconds // 3600) }}h {{ ((p.duration_seconds % 3600) // 60) }}m</span>
+        {% endif %}
+        {% if p.filament_used %}
+        <span>{{ p.filament_used | map(attribute='tray_type') | select | unique | join(', ') }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</a>
+{% endfor %}
+</div>
+{% else %}
+<div class="empty">No prints found.</div>
+{% endif %}
+{% endblock %}

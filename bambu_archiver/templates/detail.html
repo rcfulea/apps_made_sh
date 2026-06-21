@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}{{ p.print_name or p._folder }} — Bambu Archiver{% endblock %}
+{% block head %}
+<style>
+  .back { margin-bottom: 1rem; font-size: 0.875rem; }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 1.5rem; }
+  @media (max-width: 700px) { .detail-grid { grid-template-columns: 1fr; } }
+  .thumb-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .thumb-box img { width: 100%; display: block; }
+  .thumb-placeholder { aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-size: 3rem; background: var(--surface2); }
+  .meta-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; }
+  .meta-card h2 { font-size: 1.1rem; margin-bottom: 0.25rem; }
+  .meta-card .sub { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 1rem; }
+  table.meta { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  table.meta td { padding: 5px 8px; border-bottom: 1px solid var(--border); }
+  table.meta td:first-child { color: var(--text-dim); width: 45%; }
+  .dl-btn { display: inline-block; margin-top: 1rem; background: var(--accent); color: #000; padding: 8px 18px; border-radius: 6px; font-weight: 600; font-size: 0.875rem; }
+  .section-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin: 1rem 0 0.4rem; }
+</style>
+{% endblock %}
+{% block content %}
+<p class="back"><a href="/">← All Prints</a></p>
+
+<div class="detail-grid">
+  <div>
+    <div class="thumb-box">
+      {% if p._has_thumbnail %}
+      <img src="/thumbnail/{{ p._folder }}" alt="thumbnail">
+      {% else %}
+      <div class="thumb-placeholder">🖨</div>
+      {% endif %}
+    </div>
+    {% if p._three_mf %}
+    <a class="dl-btn" href="/download/{{ p._folder }}/{{ p._three_mf }}">Download 3MF</a>
+    {% endif %}
+  </div>
+
+  <div class="meta-card">
+    <h2>{{ p.print_name or p._folder }}</h2>
+    <div class="sub">
+      <span class="badge badge-{{ p.result or 'unknown' }}">{{ p.result or 'unknown' }}</span>
+      &nbsp;{{ (p.end_time or '')[:10] }}
+    </div>
+
+    <div class="section-title">Print Info</div>
+    <table class="meta">
+      <tr><td>Start</td><td>{{ p.start_time or '—' }}</td></tr>
+      <tr><td>End</td><td>{{ p.end_time or '—' }}</td></tr>
+      {% if p.duration_seconds %}
+      <tr><td>Duration</td><td>{{ (p.duration_seconds // 3600) }}h {{ ((p.duration_seconds % 3600) // 60) }}m {{ (p.duration_seconds % 60) }}s</td></tr>
+      {% endif %}
+      <tr><td>Layers</td><td>{{ p.layers_completed }} / {{ p.total_layers }}</td></tr>
+      <tr><td>Progress</td><td>{{ p.progress_percent }}%</td></tr>
+      <tr><td>Print type</td><td>{{ p.print_type or '—' }}</td></tr>
+      <tr><td>Error code</td><td>{{ p.print_error }}</td></tr>
+    </table>
+
+    <div class="section-title">Hardware</div>
+    <table class="meta">
+      <tr><td>Nozzle temp</td><td>{{ p.nozzle_temp }}°C</td></tr>
+      <tr><td>Bed temp</td><td>{{ p.bed_temp }}°C</td></tr>
+      <tr><td>Chamber temp</td><td>{{ p.chamber_temp }}°C</td></tr>
+      <tr><td>Nozzle</td><td>{{ p.nozzle_diameter }}mm {{ p.nozzle_type }}</td></tr>
+      <tr><td>Speed level</td><td>{{ {1:'Silent',2:'Standard',3:'Sport',4:'Ludicrous'}.get(p.speed_level, p.speed_level) }}</td></tr>
+      <tr><td>Speed %</td><td>{{ p.speed_percent }}%</td></tr>
+      <tr><td>Fan cooling</td><td>{{ p.fan_cooling }}</td></tr>
+      <tr><td>Fan heatbreak</td><td>{{ p.fan_heatbreak }}</td></tr>
+      <tr><td>Fan chamber</td><td>{{ p.fan_chamber }}</td></tr>
+      <tr><td>Wi-Fi signal</td><td>{{ p.wifi_signal }} dBm</td></tr>
+    </table>
+
+    {% if p.filament_used %}
+    <div class="section-title">Filament</div>
+    <table class="meta">
+      {% for t in p.filament_used %}
+      <tr><td>AMS {{ t.ams_id }} Tray {{ t.tray_id }}</td><td>{{ t.tray_type }} — {{ t.tray_sub_brands or '—' }} ({{ t.remain }}% remain)</td></tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+
+    {% if p.ams_humidity %}
+    <div class="section-title">AMS Humidity</div>
+    <table class="meta">
+      {% for u in p.ams_humidity %}
+      <tr><td>AMS {{ u.ams_id }}</td><td>Humidity {{ u.humidity }}, Temp {{ u.temp }}°C</td></tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+
+    <div class="section-title">Archive</div>
+    <table class="meta">
+      <tr><td>Archived</td><td>{{ p.archive_timestamp or '—' }}</td></tr>
+      <tr><td>Printer serial</td><td>{{ p.printer_serial or '—' }}</td></tr>
+      <tr><td>Firmware</td><td>{{ p.firmware_version or '—' }}</td></tr>
+    </table>
+  </div>
+</div>
+{% endblock %}

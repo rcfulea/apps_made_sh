@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Bambu Print Archiver{% endblock %}</title>
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --border: #333;
+    --text: #e0e0e0;
+    --text-dim: #888;
+    --green: #22c55e;
+    --red: #ef4444;
+    --orange: #f97316;
+    --blue: #3b82f6;
+    --accent: #06b6d4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; font-size: 15px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; align-items: center; gap: 1rem; }
+  header h1 { font-size: 1.2rem; font-weight: 600; }
+  header a { color: var(--text); font-size: 0.85rem; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .badge-success { background: #14532d; color: var(--green); }
+  .badge-failed { background: #7f1d1d; color: var(--red); }
+  .badge-cancelled { background: #431407; color: var(--orange); }
+  .badge-unknown { background: #1f2937; color: var(--text-dim); }
+</style>
+{% block head %}{% endblock %}
+</head>
+<body>
+<header>
+  <h1><a href="/" style="color:var(--accent)">Bambu Print Archiver</a></h1>
+  <span style="color:var(--text-dim)">|</span>
+  <a href="/">All Prints</a>
+  <span style="margin-left:auto; color:var(--text-dim); font-size:0.8rem;"><a href="/api/test" target="_blank" style="color:var(--text-dim)">Run Test</a></span>
+</header>
+<div class="container">
+{% block content %}{% endblock %}
+</div>
+</body>
+</html>

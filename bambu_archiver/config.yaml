@@ -1,0 +1,17 @@
+printer:
+  ip: "192.168.0.122"
+  serial: "00M09D461602743"
+  access_code: "7fcd064c"
+
+archive:
+  path: "/archive"
+
+web:
+  port: 8080
+
+mqtt:
+  reconnect_delay_seconds: 10
+  post_completion_delay_seconds: 10
+
+logging:
+  level: INFO

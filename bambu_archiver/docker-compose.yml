@@ -1,0 +1,13 @@
+services:
+  bambu-archiver:
+    image: bambu-archiver:latest
+    container_name: bambu-archiver
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - /home/3d_printing:/archive
+      - ./config.yaml:/app/config.yaml
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/London
