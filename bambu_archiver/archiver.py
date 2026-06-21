@@ -31,6 +31,15 @@ def _safe_folder_name(base: str, archive_path: str) -> str:
         counter += 1
 
 
+def _parse_wifi_signal(raw) -> int | None:
+    if raw is None:
+        return None
+    try:
+        return int(str(raw).replace("dBm", "").strip())
+    except ValueError:
+        return raw
+
+
 def _build_metadata(state: dict, result: str, end_time: datetime, folder_name: str, printer_serial: str) -> dict:
     start_iso = state.get("start_time")
     end_iso = end_time.isoformat()
@@ -53,6 +62,8 @@ def _build_metadata(state: dict, result: str, end_time: datetime, folder_name: s
                 "temp": unit.get("temp"),
             })
             for tray in unit.get("tray", []):
+                if not tray.get("tray_type"):
+                    continue  # skip empty/missing slots
                 filament_used.append({
                     "ams_id": unit.get("id"),
                     "tray_id": tray.get("id"),
@@ -61,7 +72,9 @@ def _build_metadata(state: dict, result: str, end_time: datetime, folder_name: s
                     "tray_uuid": tray.get("tray_uuid"),
                     "tag_uid": tray.get("tag_uid"),
                     "tray_info_idx": tray.get("tray_info_idx"),
+                    "tray_id_name": tray.get("tray_id_name"),
                     "tray_sub_brands": tray.get("tray_sub_brands"),
+                    "tray_diameter": tray.get("tray_diameter"),
                     "nozzle_temp_min": tray.get("nozzle_temp_min"),
                     "nozzle_temp_max": tray.get("nozzle_temp_max"),
                     "remain": tray.get("remain"),
@@ -92,12 +105,17 @@ def _build_metadata(state: dict, result: str, end_time: datetime, folder_name: s
         "fan_heatbreak": state.get("heatbreak_fan_speed"),
         "fan_chamber": state.get("big_fan1_speed"),
         "print_error": state.get("print_error"),
-        "wifi_signal": state.get("wifi_signal"),
+        "wifi_signal": _parse_wifi_signal(state.get("wifi_signal")),
         "ams_humidity": ams_humidity,
         "filament_used": filament_used,
         "archive_timestamp": datetime.now(timezone.utc).isoformat(),
         "printer_serial": printer_serial,
-        "firmware_version": state.get("hw_ver") or state.get("mc_ver"),
+        "firmware_version": (
+            state.get("hw_ver")
+            or state.get("mc_ver")
+            or (state.get("upgrade_state") or {}).get("ota_new_version_number")
+            or (state.get("upgrade_state") or {}).get("new_ver_list", [{}])[0].get("sw_ver") if state.get("upgrade_state") else None
+        ),
     }
 
 
