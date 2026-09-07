@@ -1,0 +1,3 @@
+# Hevy on the FREE plan has no API — you drop exported CSVs here (see README).
+# Each `hevy/inbox/*.csv` is your training data and is gitignored; this file
+# keeps the (empty) folder in the repo so the mount target exists on a fresh clone.

@@ -1,0 +1,43 @@
+# ─── fitness-sync — Garmin body/watch sync + weekly rollup ───────────────
+# Single self-hosted service. THE stack descriptor — one file, two deploy paths:
+#
+#   single host:   docker compose up -d        (or `podman compose up -d`)
+#   swarm/stack:   podman build -t fitness-sync:latest .
+#                  then  docker stack deploy -c docker-compose.yml fitness-sync
+#
+# `build:` lets compose build in place; `image:` lets a swarm `stack deploy`
+# use a pre-built tag. `restart:` is honoured by compose; swarm ignores it —
+# use the commented `deploy:` block instead on swarm.
+#
+# BEFORE `up`:  cp .env.example .env   (token lives in the tokenstore, not here)
+# ──────────────────────────────────────────────────────────────────────────
+services:
+  fitness-sync:
+    build: .
+    image: fitness-sync:latest
+    container_name: fitness-sync
+    restart: unless-stopped
+
+    # Per-host config (lookback window, cadence). Ship via .env (gitignored),
+    # not committed. Garmin auth is the tokenstore, NOT credentials in .env.
+    env_file:
+      - .env
+
+    environment:
+      # Tokenstore sits on the bind mount so host + container share ONE path
+      # layout. -e (not -f) because on this box it's a directory.
+      - GARMIN_TOKENSTORE=/app/garmin/tokens.txt
+      # 6h spacing stays well under any Garmin 429 login-rate limit.
+      - SYNC_INTERVAL_HOURS=${SYNC_INTERVAL_HOURS:-6}
+
+    # One bind mount: the whole tree, so host and container resolve the same
+    # relative paths. .venv / .env / .git are .dockerignore'd OUT of the image,
+    # not out of the mount (they just aren't used in-container).
+    volumes:
+      - ./:/app
+
+    # ── uncomment for `docker stack deploy` (swarm) ──
+    # deploy:
+    #   replicas: 1
+    #   restart_policy:
+    #     condition: unless-stopped

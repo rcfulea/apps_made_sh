@@ -1,0 +1,37 @@
+# ══════════════════ fitness-sync — git ignore ══════════════════
+# Rule of thumb: the repo ships CODE + config templates.
+# Anything per-host, personal, or a secret lives in the bind mount and is
+# regenerated on each host. Never commit it.
+
+# ── SECRET: live Garmin OAuth tokenstore (NEVER commit) ──
+garmin/tokens.txt/
+garmin/tokens.txt
+# legacy path from an old layout — kept so it can't slip in
+data/garmin/tokens
+
+# ── local config / credentials (per-host) ──
+.env
+
+# ── personal health + training data (per-host; container-owned or your manual drops) ──
+# weight.csv / metrics.csv / rollout.csv are written by the container each cycle.
+# body.csv + hevy are your manual drops. Keep the dirs, drop the personal content.
+body.csv
+garmin/weight.csv
+garmin/metrics.csv
+rollout.csv
+hevy/inbox/*.csv
+!hevy/inbox/.gitkeep
+
+# ── backups + scratch (regenerable, not part of the deploy) ──
+*.bak
+*.bak.*
+garmin/.bak/
+_probe_*.py
+
+# ── python ──
+.venv/
+__pycache__/
+*.pyc
+
+# ── os noise ──
+.DS_Store
