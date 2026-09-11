@@ -1,0 +1,51 @@
+# fitness-sync — finalised deploy descriptor
+# Target: Portainer env 3 (Optiplex 192.168.0.161:9443), Docker 28.1.
+#
+# This is the SHARED-FILE view (Portainer "Stacks -> Local"). The live instance
+# was created purely via the Docker Engine API (POST /containers/create) with the
+# fields below baked in; this compose file is the declarative twin of that call.
+#
+# KEY DESIGN DECISION (2026-09-11): no host bind mount.
+#   The Garmin tokenstore (garmin/tokens.txt/garmin_tokens.json) and the per-host
+#   CSVs live in the NAMED VOLUME `fitness-sync-data` mounted at /app — not in the
+#   image (credentials never baked in) and not in a bind mount (this LXC shares no
+#   host FS with the Optiplex). The volume is seeded once via a throwaway seeder
+#   container + `PUT /containers/{id}/archive`; see README "Seeding the volume".
+#
+# Deploy paths:
+#   local compose:  docker compose -f docker-stack.yml up -d --no-build
+#   swarm stack:    docker stack deploy -f docker-stack.yml fitness-sync
+# Both need the image `fitness-sync:latest` to already exist on the host. It is
+# built on the Optiplex and referenced by tag — no build step, no registry pull.
+
+services:
+  fitness-sync:
+    image: fitness-sync:latest          # pre-built on host; do not rebuild
+    container_name: fitness-sync
+    restart: unless-stopped             # honoured by compose
+    # No env_file: per-host config is passed as env vars / baked into the image.
+    environment:
+      # tokenstore is a DIRECTORY on this box; entrypoint tests `-e` (not `-f`).
+      - GARMIN_TOKENSTORE=/app/garmin/tokens.txt
+      - GARMIN_DAYS=30
+      - SYNC_INTERVAL_HOURS=6
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - fitness-sync-data:/app          # live data + tokenstore; seed it first
+    # no ports: background Garmin pull + rollup, not a service
+    networks:
+      - default
+    # ── swarm only: compose ignores `deploy:`, so it lives in the twin block ──
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: unless-stopped
+
+volumes:
+  fitness-sync-data:
+    external: true                      # created + seeded once out of band
+    name: fitness-sync-data
+
+networks:
+  default:
+    driver: bridge
