@@ -18,6 +18,11 @@ services:
     image: fitness-sync:latest
     container_name: fitness-sync
     restart: unless-stopped
+    # Opt out of Watchtower if it's running on this host — this image is local-only
+    # (no registry to pull from); Watchtower's update-check kills the container trying
+    # to check anyway. See docker-stack.yml for the full incident writeup.
+    labels:
+      - com.centurylinklabs.watchtower.enable=false
 
     env_file:
       - .env

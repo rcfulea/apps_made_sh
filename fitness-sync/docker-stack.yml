@@ -27,6 +27,15 @@ services:
     image: fitness-sync:latest          # pre-built on host; do not rebuild
     container_name: fitness-sync
     restart: unless-stopped             # honoured by compose
+    # This image is purely local (never pushed to a registry) — Watchtower's periodic
+    # update-check tries to `docker pull` it anyway, gets "pull access denied", and
+    # kills the container (SIGTERM -> SIGKILL after its 10s grace period, exit 137) as
+    # part of its stop/rename/recreate dance before discovering the pull failed and
+    # giving up WITHOUT restarting it. This label opts the container out of that scan
+    # entirely (confirmed via watchtower's own logs on 2026-09-14 — see its
+    # "Unable to update container /fitness-sync: pull access denied" line).
+    labels:
+      - com.centurylinklabs.watchtower.enable=false
     # No env_file: per-host config is passed as env vars / baked into the image.
     environment:
       # tokenstore is a DIRECTORY on this box; entrypoint tests `-e` (not `-f`).
