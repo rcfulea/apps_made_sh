@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Garmin readings — fitness-sync{% endblock %}
+{% block content %}
+<h1>Garmin readings</h1>
+<p class="muted">Synced automatically from your scale on the configured interval.
+Use this form to add a manual reading or correct a day — only the fields you fill in
+are changed, everything else on that date is left alone.</p>
+
+<form class="inline" hx-post="/body-metrics/save" hx-target="#body-metrics-table" hx-swap="outerHTML">
+  <label>Date <input type="date" name="date" value="{{ today }}" required></label>
+  {% for f, label in labels.items() %}
+  <label>{{ label }} <input type="number" step="0.1" name="{{ f }}"></label>
+  {% endfor %}
+  <label>Source
+    <select name="source">
+      <option value="user">user</option>
+      <option value="llm">llm</option>
+    </select>
+  </label>
+  <button type="submit">Save</button>
+
+  <details style="flex-basis:100%;">
+    <summary class="muted" style="cursor:pointer;">More fields (rarely reported by most scales)</summary>
+    <div class="inline" style="margin-top:.5rem;">
+      {% for f, label in labels_advanced.items() %}
+      <label>{{ label }} <input type="number" step="0.1" name="{{ f }}"></label>
+      {% endfor %}
+    </div>
+  </details>
+</form>
+
+{% include "partials/body_metrics_table.html" %}
+{% endblock %}

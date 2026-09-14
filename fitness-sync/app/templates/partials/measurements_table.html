@@ -1,0 +1,36 @@
+<div id="measurements-wrap">
+  {% if deltas %}
+  <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));">
+    {% for f, label in labels.items() %}
+      {% if f in deltas %}
+      <div class="card" style="margin-bottom:0;padding:.6rem .8rem;">
+        <div class="muted">{{ label }}</div>
+        <div class="stat" style="font-size:1.2rem;">{{ deltas[f][0] }} cm</div>
+        {% if deltas[f][1] is not none %}
+          <div class="muted">{{ "%+.1f"|format(deltas[f][1]) }} since last</div>
+        {% endif %}
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <table>
+    <tr>
+      <th>Date</th>
+      {% for label in labels.values() %}<th>{{ label }}</th>{% endfor %}
+      <th>Note</th><th></th>
+    </tr>
+    {% for r in rows %}
+    <tr>
+      <td>{{ r.date }}</td>
+      {% for f in labels.keys() %}<td>{{ r[f] or "—" }}</td>{% endfor %}
+      <td>{{ r.note or "" }}</td>
+      <td><button class="secondary" hx-delete="/measurements/{{ r.date }}" hx-target="#measurements-wrap"
+                   hx-swap="outerHTML" hx-confirm="Delete this entry?">Delete</button></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="12" class="muted">No measurements yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Workouts — fitness-sync{% endblock %}
+{% block content %}
+<h1>Workouts</h1>
+<p class="muted">Hevy free plan has no API — export from the app (Profile → Export Data)
+and upload the CSV below, or drop it into <code>hevy/inbox/</code> and re-scan. Manual
+sets can also be added directly.</p>
+
+{% if plateaus %}
+<div class="callout">
+  <strong>No progress in {{ plateaus[0].sessions_logged if plateaus|length == 1 else "5+" }} sessions:</strong>
+  {% for p in plateaus %}{{ p.exercise }} ({{ p.best_weight_kg }}kg){% if not loop.last %}, {% endif %}{% endfor %}
+</div>
+{% endif %}
+
+<form class="inline" hx-post="/workouts/upload" hx-target="#workouts-wrap" hx-swap="outerHTML"
+      hx-encoding="multipart/form-data">
+  <label>Upload Hevy export <input type="file" name="file" accept=".csv" required></label>
+  <button type="submit">Upload &amp; import</button>
+</form>
+
+<button class="secondary" hx-post="/workouts/rescan" hx-target="#workouts-wrap" hx-swap="outerHTML">
+  Re-scan hevy/inbox/
+</button>
+
+<h2>Add a set</h2>
+<datalist id="exercise-datalist">
+  {% for e in exercises %}<option value="{{ e }}">{% endfor %}
+</datalist>
+<form class="inline" hx-post="/workouts/save" hx-target="#workouts-wrap" hx-swap="outerHTML">
+  <label>Date <input type="date" name="date" value="{{ today }}" required></label>
+  <label>Exercise <input type="text" name="exercise" list="exercise-datalist" required
+                          hx-get="/workouts/last-session" hx-trigger="change" hx-target="#last-session-hint"
+                          hx-swap="outerHTML" hx-include="this"></label>
+  <label>Weight (kg) <input type="number" step="0.5" name="weight_kg"></label>
+  <label>Reps <input type="number" step="1" name="reps"></label>
+  <button type="submit">Save</button>
+</form>
+{% include "partials/last_session_hint.html" %}
+
+<h2>Browse</h2>
+<form class="inline" method="get" action="/workouts">
+  <label>Exercise
+    <select name="exercise">
+      <option value="">All</option>
+      {% for e in exercises %}
+      <option value="{{ e }}" {{ "selected" if e == filter.exercise else "" }}>{{ e }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>From <input type="date" name="from_" value="{{ filter.from_ }}"></label>
+  <label>To <input type="date" name="to" value="{{ filter.to }}"></label>
+  <button type="submit" class="secondary">Filter</button>
+  {% if filter.exercise or filter.from_ or filter.to %}<a href="/workouts">Clear</a>{% endif %}
+</form>
+
+{% include "partials/workouts_table.html" %}
+{% endblock %}

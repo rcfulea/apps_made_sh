@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Health — fitness-sync{% endblock %}
+{% block content %}
+<h1>Watch &amp; recovery</h1>
+<p class="muted">Synced automatically from your watch. For any custom combination of
+these against training/body metrics, use <a href="/analytics">Analytics</a> instead of
+scrolling the table below.</p>
+
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+  <div class="card">
+    <div class="muted">Readiness</div>
+    <div class="stat">{{ readiness.readiness if readiness and readiness.readiness is not none else "—" }}</div>
+    {% if readiness and readiness.band %}<div class="muted">{{ readiness.band }}</div>{% endif %}
+  </div>
+  <div class="card"><div class="muted">Resting HR</div><div class="stat">{{ latest.resting_hr or "—" }}</div></div>
+  <div class="card"><div class="muted">Sleep score</div><div class="stat">{{ latest.sleep_score or "—" }}</div></div>
+  <div class="card"><div class="muted">Sleep (hr)</div><div class="stat">{{ latest.sleep_duration_hr or "—" }}</div></div>
+  <div class="card"><div class="muted">VO2max</div><div class="stat">{{ latest.vo2max or "—" }}</div></div>
+  <div class="card"><div class="muted">Body battery</div><div class="stat">{{ latest.body_battery or "—" }}</div></div>
+  <div class="card"><div class="muted">Stress avg</div><div class="stat">{{ latest.stress_avg or "—" }}</div></div>
+</div>
+
+<div class="grid">
+  {% for c in charts %}
+  <div class="card">
+    <h2>{{ c.label }} <a href="/analytics?metrics={{ c.key }}&range=year" class="muted" style="font-size:.75rem;">open in Analytics →</a></h2>
+    <div class="chart-wrap" style="height:180px;"><canvas id="chart-{{ c.key }}"></canvas></div>
+  </div>
+  {% endfor %}
+</div>
+
+<details>
+  <summary class="muted" style="cursor:pointer;">Full weekly table ({{ rows|length }} weeks)</summary>
+  <div class="table-scroll">
+  <table>
+    <tr>
+      <th>Week</th><th>Resting HR</th><th>Sleep score</th><th>Sleep (hr)</th>
+      <th>VO2max</th><th>Fitness age</th><th>SpO2 avg</th><th>SpO2 low</th>
+      <th>HRV last night</th><th>HRV weekly</th><th>Stress avg</th><th>Body battery</th>
+      <th>Floors</th><th>Basal kcal</th><th>Active kcal (on top)</th><th>Total kcal</th><th>Steps total</th>
+    </tr>
+    {% for r in rows %}
+    <tr>
+      <td>{{ r.week }}</td>
+      <td>{{ r.resting_hr or "—" }}</td>
+      <td>{{ r.sleep_score or "—" }}</td>
+      <td>{{ r.sleep_duration_hr or "—" }}</td>
+      <td>{{ r.vo2max or "—" }}</td>
+      <td>{{ r.fitness_age or "—" }}</td>
+      <td>{{ r.spo2_avg or "—" }}</td>
+      <td>{{ r.spo2_lowest or "—" }}</td>
+      <td>{{ r.hrv_last_night or "—" }}</td>
+      <td>{{ r.hrv_weekly_avg or "—" }}</td>
+      <td>{{ r.stress_avg or "—" }}</td>
+      <td>{{ r.body_battery or "—" }}</td>
+      <td>{{ r.floors_climbed or "—" }}</td>
+      <td>{{ r.bmr_kcal or "—" }}</td>
+      <td>{{ r.active_kcal or "—" }}</td>
+      <td>{{ r.total_kcal or "—" }}</td>
+      <td>{{ r.steps_total or "—" }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="16" class="muted">No watch data yet.</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+</details>
+
+<script>
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  Chart.defaults.color = isDark ? '#eaeaea' : '#1c1c1c';
+  Chart.defaults.borderColor = isDark ? '#333' : '#ddd';
+  const charts = {{ charts|tojson }};
+  charts.forEach(c => {
+    new Chart(document.getElementById('chart-' + c.key), {
+      type: 'line',
+      data: { labels: c.labels, datasets: [{ data: c.values, borderColor: '#2f6f4f', pointRadius: 2, tension: .2 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+  });
+</script>
+{% endblock %}

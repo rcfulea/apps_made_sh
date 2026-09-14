@@ -1,16 +1,20 @@
 # fitness-sync — finalised deploy descriptor
 # Target: Portainer env 3 (Optiplex 192.168.0.161:9443), Docker 28.1.
 #
-# This is the SHARED-FILE view (Portainer "Stacks -> Local"). The live instance
-# was created purely via the Docker Engine API (POST /containers/create) with the
-# fields below baked in; this compose file is the declarative twin of that call.
+# This is the SHARED-FILE view (Portainer "Stacks -> Local"). Deploy by pasting this
+# file into a Portainer stack and setting AUTH_USER / AUTH_PASSWORD (and optionally
+# HOST_PORT) under the stack's "Environment variables" — Portainer substitutes ${...}
+# the same way `docker compose --env-file` does. Never hardcode the password here;
+# this file is committed to the repo.
 #
 # KEY DESIGN DECISION (2026-09-11): no host bind mount.
-#   The Garmin tokenstore (garmin/tokens.txt/garmin_tokens.json) and the per-host
-#   CSVs live in the NAMED VOLUME `fitness-sync-data` mounted at /app — not in the
-#   image (credentials never baked in) and not in a bind mount (this LXC shares no
-#   host FS with the Optiplex). The volume is seeded once via a throwaway seeder
-#   container + `PUT /containers/{id}/archive`; see README "Seeding the volume".
+#   The Garmin tokenstore (garmin/tokens.txt/garmin_tokens.json), the SQLite DB
+#   (data/fitness.db) and hevy/inbox/ all live in the NAMED VOLUME `fitness-sync-data`
+#   mounted at /app — not in the image (credentials never baked in) and not in a bind
+#   mount (this LXC shares no host FS with the Optiplex). The volume is seeded once via
+#   a throwaway seeder container + `PUT /containers/{id}/archive`; see README "Seeding
+#   the volume". data/fitness.db needs no separate seeding step — app/db.py creates it
+#   on first run if the volume doesn't already have one.
 #
 # Deploy paths:
 #   local compose:  docker compose -f docker-stack.yml up -d --no-build
@@ -30,9 +34,13 @@ services:
       - GARMIN_DAYS=30
       - SYNC_INTERVAL_HOURS=6
       - PYTHONUNBUFFERED=1
+      - PORT=8000
+      - AUTH_USER=${AUTH_USER}
+      - AUTH_PASSWORD=${AUTH_PASSWORD}
+    ports:
+      - "${HOST_PORT:-8000}:8000"
     volumes:
       - fitness-sync-data:/app          # live data + tokenstore; seed it first
-    # no ports: background Garmin pull + rollup, not a service
     networks:
       - default
     # ── swarm only: compose ignores `deploy:`, so it lives in the twin block ──

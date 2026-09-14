@@ -1,0 +1,7 @@
+<ul id="notes-list">
+  {% for n in rows %}
+    {% include "partials/note_item.html" %}
+  {% else %}
+  <li class="muted">No notes yet.</li>
+  {% endfor %}
+</ul>

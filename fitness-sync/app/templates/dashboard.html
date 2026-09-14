@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — fitness-sync{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+  <div class="card">
+    <div class="muted">Latest weight (7d MA)</div>
+    <div class="stat">{{ "%.1f"|format(latest_week.weight_7d_MA_kg) if latest_week else "—" }} kg</div>
+  </div>
+  <div class="card">
+    <div class="muted">This week's sessions</div>
+    <div class="stat">{{ latest_week.sessions if latest_week else "—" }}</div>
+  </div>
+  <div class="card">
+    <div class="muted">Readiness</div>
+    <div class="stat">{{ readiness.readiness if readiness and readiness.readiness is not none else "—" }}</div>
+    {% if readiness and readiness.band %}<div class="muted">{{ readiness.band }}</div>{% endif %}
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="muted">Today's weight</div>
+    {% include "partials/dashboard_weight_quick.html" %}
+  </div>
+  <div class="card">
+    <div class="muted">Today's meals</div>
+    {% include "partials/dashboard_meal_quick.html" %}
+  </div>
+</div>
+
+{% if latest_llm_note %}
+<div class="card" style="border-color: var(--accent);">
+  <h2><span class="badge llm">llm</span> {{ latest_llm_note.title or "Latest analysis" }}</h2>
+  <p style="white-space: pre-wrap;">{{ latest_llm_note.body }}</p>
+  <p class="muted">{{ latest_llm_note.created_at }}{% if latest_llm_note.related_week %} · {{ latest_llm_note.related_week }}{% endif %}</p>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Latest body composition</h2>
+  {% if latest_body %}
+  <table>
+    <tr><th>Date</th><th>Weight</th><th>Body fat</th><th>Water</th><th>Muscle</th><th>Bone</th><th>BMI</th></tr>
+    <tr>
+      <td>{{ latest_body.date }}</td>
+      <td>{{ latest_body.weight_kg or "—" }} kg</td>
+      <td>{{ latest_body.body_fat_pct or "—" }}%</td>
+      <td>{{ latest_body.body_water_pct or "—" }}%</td>
+      <td>{{ latest_body.muscle_mass_kg or "—" }} kg</td>
+      <td>{{ latest_body.bone_mass_kg or "—" }} kg</td>
+      <td>{{ latest_body.bmi or "—" }}</td>
+    </tr>
+  </table>
+  {% else %}
+  <p class="muted">No readings yet.</p>
+  {% endif %}
+</div>
+
+<div class="range-switch">
+  {% for r in ["week", "month", "year", "all"] %}
+  <a href="/?range={{ r }}" class="{{ 'active' if r == range else '' }}">{{ r|capitalize }}</a>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <h2>Weight trend</h2>
+  <div class="chart-wrap"><canvas id="weightChart"></canvas></div>
+</div>
+
+<div class="card">
+  <h2>Muscle-group tonnage</h2>
+  <div class="chart-wrap"><canvas id="mgChart"></canvas></div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h2>Sync status</h2>
+    <table>
+      <tr><th>Last run</th><td>{{ sync_status.last_run_finished or "never" }}</td></tr>
+      <tr><th>Garmin pull</th><td>{{ sync_status.last_garmin_pull_ok }}</td></tr>
+      <tr><th>Garmin watch</th><td>{{ sync_status.last_garmin_watch_ok }}</td></tr>
+      <tr><th>Hevy import</th><td>{{ sync_status.last_hevy_import }}</td></tr>
+      <tr><th>Last error</th><td>{{ sync_status.last_error or "—" }}</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h2>Other recent notes</h2>
+    {% if other_notes %}
+      <ul>
+      {% for n in other_notes %}
+        <li><span class="badge {{ 'llm' if n.author == 'llm' else '' }}">{{ n.author }}</span>
+          {{ n.title or n.body[:60] }}</li>
+      {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">Nothing else yet. <a href="/notes">Add one</a>.</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const gridColor = isDark ? '#333' : '#ddd';
+  const fg = isDark ? '#eaeaea' : '#1c1c1c';
+  Chart.defaults.color = fg;
+  Chart.defaults.borderColor = gridColor;
+
+  new Chart(document.getElementById('weightChart'), {
+    type: 'line',
+    data: {
+      labels: {{ weight_labels|tojson }},
+      datasets: [
+        { label: 'Weight (kg)', data: {{ weight_values|tojson }}, borderColor: '#8888ff', pointRadius: 0, tension: .2 },
+        { label: '7-day MA', data: {{ weight_ma|tojson }}, borderColor: '#2f6f4f', pointRadius: 0, borderWidth: 2, tension: .2 },
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { maxTicksLimit: 8 } } } }
+  });
+
+  const mgDatasets = {{ mg_datasets|tojson }};
+  const mgColors = ['#8888ff','#ff9f66','#66c2a5','#e78ac3','#a6d854','#ffd92f','#e5c494','#b3b3b3','#fc8d62','#66a3d2'];
+  new Chart(document.getElementById('mgChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ mg_labels|tojson }},
+      datasets: Object.keys(mgDatasets).map((g, i) => ({
+        label: g, data: mgDatasets[g], backgroundColor: mgColors[i % mgColors.length]
+      }))
+    },
+    options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
+  });
+</script>
+{% endblock %}

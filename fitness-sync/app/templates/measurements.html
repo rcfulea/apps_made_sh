@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Measurements — fitness-sync{% endblock %}
+{% block content %}
+<h1>Measurements</h1>
+<p class="muted">Manual tape-measure entries — Garmin/the scale never reports these.
+Only the fields you fill in change; leave the rest blank to keep prior values untouched.</p>
+
+<form class="inline" hx-post="/measurements/save" hx-target="#measurements-wrap" hx-swap="outerHTML">
+  <label>Date <input type="date" name="date" value="{{ today }}" required></label>
+  {% for f, label in labels.items() %}
+  <label>{{ label }} (cm) <input type="number" step="0.1" name="{{ f }}"></label>
+  {% endfor %}
+  <label>Note <input type="text" name="note"></label>
+  <button type="submit">Save</button>
+</form>
+
+<div class="card">
+  <h2>Trend</h2>
+  <div class="chart-wrap"><canvas id="measureChart"></canvas></div>
+</div>
+
+{% include "partials/measurements_table.html" %}
+
+<script>
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  Chart.defaults.color = isDark ? '#eaeaea' : '#1c1c1c';
+  Chart.defaults.borderColor = isDark ? '#333' : '#ddd';
+  const mColors = ['#8888ff','#ff9f66','#66c2a5','#e78ac3','#a6d854','#ffd92f','#e5c494','#b3b3b3','#fc8d62'];
+  const mDatasets = {{ chart_datasets|tojson }};
+  new Chart(document.getElementById('measureChart'), {
+    type: 'line',
+    data: {
+      labels: {{ chart_labels|tojson }},
+      datasets: Object.keys(mDatasets).map((f, i) => ({
+        label: f.replace('_cm',''), data: mDatasets[f], borderColor: mColors[i % mColors.length],
+        spanGaps: true, pointRadius: 2, tension: .2
+      }))
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+</script>
+{% endblock %}

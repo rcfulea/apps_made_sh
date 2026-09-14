@@ -1,29 +1,13 @@
 #!/bin/sh
-# Supervises one synced loop; restart on crash via compose restart: unless-stopped.
+# Single process: uvicorn serves the API + web UI; the Garmin/Hevy sync loop runs as a
+# background thread inside that same process (see app/sync/loop.py), started from
+# FastAPI's lifespan hook. Replaces the old shell polling loop that shelled out to two
+# scripts every cycle.
 set -eu
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 cd "$SCRIPT_DIR"
-: "${SYNC_INTERVAL_HOURS:=24}"
-sleep_s=$((SYNC_INTERVAL_HOURS * 3600))
-trap 'echo "[fitness-sync] stopping at $(date -u +%FT%TZ)"; exit 0' TERM INT
+mkdir -p data garmin hevy/inbox
 
-echo "[fitness-sync] starting. sync every ${SYNC_INTERVAL_HOURS}h. token=${GARMIN_TOKENSTORE:-unset}"
-
-# tokenstore is a DIRECTORY on this box (tokens.txt/garmin_tokens.json); -f would miss it, so use -e
-has_token() {
-  { [ -e "${GARMIN_TOKENSTORE}" ] && [ -n "${GARMIN_TOKENSTORE}" ]; } || \
-    { [ -n "${GARMIN_EMAIL:-}" ] && [ -n "${GARMIN_PASSWORD:-}" ]; }
-}
-
-while true; do
-  echo "[fitness-sync] $(date -u +%FT%TZ) -- Garmin pull + rollup"
-  if has_token; then
-    python3 garmin/garmin-sync.py --mode pull   || echo "[fitness-sync] Garmin pull skipped (auth/err) -- continuing"
-    python3 garmin/garmin-sync.py --mode watch  || echo "[fitness-sync] Garmin watch pull skipped (auth/err) -- continuing"
-  else
-    echo "[fitness-sync] no tokenstore + no creds -- Garmin pull skipped. Run init once (see README)."
-  fi
-  python3 tracker.py || echo "[fitness-sync] tracker failed -- continuing"
-  echo "[fitness-sync] sleeping ${SYNC_INTERVAL_HOURS}h"
-  sleep "${sleep_s}"
-done
+: "${PORT:=8000}"
+echo "[fitness-sync] starting uvicorn on :${PORT}. sync every ${SYNC_INTERVAL_HOURS:-6}h. token=${GARMIN_TOKENSTORE:-unset}"
+exec python3 -m uvicorn app.main:app --host 0.0.0.0 --port "${PORT}"

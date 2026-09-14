@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Notes — fitness-sync{% endblock %}
+{% block content %}
+<h1>Notes</h1>
+<p class="muted">Your own notes, plus insights the local LLM writes via
+<code>POST /api/notes</code> (badged <span class="badge llm">llm</span>).</p>
+
+<form class="inline" hx-post="/notes/save" hx-target="#notes-list" hx-swap="outerHTML">
+  <label>Title <input type="text" name="title"></label>
+  <label>Related date <input type="date" name="related_date"></label>
+  <label>Tags <input type="text" name="tags" placeholder="comma,separated"></label>
+  <label style="flex:1 1 100%">Body <textarea name="body" rows="3" required></textarea></label>
+  <button type="submit">Save</button>
+</form>
+
+{% include "partials/notes_list.html" %}
+{% endblock %}

@@ -1,32 +1,33 @@
 #!/usr/bin/env python3
-"""
-garmin-sync.py — pull the FULL Garmin body-composition record into garmin/weight.csv.
+"""garmin_sync.py — pull Garmin body-composition + watch/recovery signals into SQLite
+(app/db.py: body_metrics, watch_metrics tables). Uses cyberjunky/python-garminconnect
+(pinned garminconnect==0.3.2, see requirements.txt).
 
 Modes
    --mode init   One-time bootstrap: logs in (prompts MFA via input) and saves a tokenstore
                  to GARMIN_TOKENSTORE. Run ONCE, on a machine where MFA can be answered.
-   --mode pull   Scheduled/container run: restores from tokenstore, pulls the last GARMIN_DAYS
-                 days, upserts weight.csv. No interaction. Safe to run daily.
-   --mode mock   Writes a 14-day demo series so the pipeline can be tested with no network/creds.
+   --mode pull   Scheduled/in-process run: restores from tokenstore, pulls the last GARMIN_DAYS
+                 days, upserts body_metrics. No interaction. Safe to run repeatedly.
+   --mode watch  Pulls watch/recovery signals (resting HR, steps, stress, body battery,
+                 respiration, kcal), upserts watch_metrics (ISO-week keyed).
+   --mode mock   Writes a 14-day demo series into body_metrics so the pipeline can be
+                 tested with no network/creds.
 
 Env
   GARMIN_EMAIL / GARMIN_PASSWORD    (used by --mode init)
   GARMIN_TOKENSTORE                tokenstore path (default: <dir of this file>/tokens.txt)
   GARMIN_DAYS                      lookback window in days for --mode pull (default 30)
+  DB_PATH                          sqlite db path (see app/db.py; default <repo>/data/fitness.db)
 
 Design notes
   * The Garmin body-composition record holds ~12 fields (weight, body fat %, body water %,
     visceral fat, bone mass, muscle mass, basal/active metabolism, metabolic age, physique
-    rating, visceral-fat rating, BMI). The extractor grabs every field Garmin returns; the
-    *writer* only emits a column that actually has data, and adds a column the moment a field
-    starts being reported. So `visceral_fat` stays out while Garmin doesn't send it, and
-    `bmi / body_water_pct / bone_mass_kg` appear automatically when they do — no edit required.
+    rating, visceral-fat rating, BMI). extract_reading() grabs every field Garmin returns;
+    fields Garmin doesn't report for a given day simply stay NULL in body_metrics (the old
+    CSV writer's "adaptive column" trick is superseded by ordinary nullable DB columns).
   * The data-call layer of garminconnect has NO 429/backoff handling: a single rate-limit
     aborts the whole pull. `_call` adds a small retry+backoff so a transient throttle becomes
-    a wait-and-continue instead of a dead pull. (This is a reliability fix, not a cost fix —
-    the LLM side runs locally and is free.)
-  * Consumers read weight.csv by COLUMN NAME (see tracker.py load_weight, csv dict reader), so
-    the header is allowed to grow/shrink safely.
+    a wait-and-continue instead of a dead pull.
 
 Known Garmin Connect wire facts (observed 2026-08, garminconnect 0.3.2):
    * weight / mass fields are in GRAMS (e.g. 68349.0 g == 68.35 kg); percentages and ratings
@@ -36,27 +37,22 @@ Known Garmin Connect wire facts (observed 2026-08, garminconnect 0.3.2):
    * weigh_ins(...).dailyWeightSummaries[] nests the same fields too.
    * 'date' may be an epoch-millisecond timestamp or a calendarDate/summaryDate string.
 """
-import os, sys, csv, datetime, collections, time, functools
+import os, sys, datetime, collections, time, functools
 
-HERE           = os.path.dirname(os.path.abspath(__file__))
-WEIGH_CSV       = os.path.join(HERE, "weight.csv")
-METRICS_CSV     = os.path.join(HERE, "metrics.csv")   # watch/recovery + activity, weekly-keyed
-TOKENSTORE      = os.environ.get("GARMIN_TOKENSTORE", os.path.join(HERE, "tokens.txt"))
-DAYS            = int(os.environ.get("GARMIN_DAYS", "30"))
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(HERE)
+sys.path.insert(0, REPO_ROOT)
+from app import db  # noqa: E402
 
-# Canonical column order. Every DATA_FIELD is pulled; a column is WRITTEN only if it has
-# >=1 populated value across the data being written, so empty fields (e.g. visceral_fat when
-# Garmin omits it) stay off the sheet and new fields show up the day they arrive.
+TOKENSTORE = os.environ.get("GARMIN_TOKENSTORE", os.path.join(HERE, "tokens.txt"))
+DAYS = int(os.environ.get("GARMIN_DAYS", "30"))
+
 DATA_FIELDS = (
     "weight_kg", "body_fat_pct", "body_water_pct", "muscle_mass_kg", "bone_mass_kg",
     "visceral_fat", "visceral_fat_rating", "basal_met", "active_met",
     "metabolic_age", "physique_rating", "bmi",
 )
-KEYS = ("date", *DATA_FIELDS, "source")
 
-# Garmin JSON key spellings per field. get_any() tries them in order, nested + top-level,
-# and unit-normalises mass fields (>100 => grams -> kg). Robust on purpose: a wrong guess
-# just stays empty (and the column gets dropped) rather than breaking the pull.
 FIELD_KEYS = {
     "weight_kg":          ("weight",),
     "body_fat_pct":       ("bodyFat", "bodyFatPercent", "fatPercent"),
@@ -72,7 +68,6 @@ FIELD_KEYS = {
     "physique_rating":    ("physiqueRating", "physique"),
     "bmi":                ("bmi", "bmiKg", "bodyMassIndex"),
 }
-# mass fields: value >100 means it came in grams -> convert to kg
 GRA_FIELDS = {"weight_kg", "muscle_mass_kg", "bone_mass_kg"}
 
 
@@ -98,13 +93,11 @@ def _call(method, attempts=3, base_delay=6.0):
             except Exception as e:
                 last = e
                 kind = type(e).__name__
-                # Only back off on things that may clear (throttle / transport / 4xx).
                 if i < attempts - 1:
                     delay = base_delay * (2 ** i)
                     sys.stderr.write(f"[garmin] {method.__name__} {kind} (#{i + 1}); "
                                      f"retry in {delay:.0f}s...\n")
                     time.sleep(delay)
-            # fallthrough
         sys.stderr.write(f"[garmin] {method.__name__} gave up after {attempts} tries "
                          f"(last {type(last).__name__ if last else 'None'})\n")
         raise last
@@ -154,12 +147,11 @@ def _collect_records(payload, key="dateWeightList"):
 
 def extract_reading(rec):
     """Normalise one Garmin record to the full DATA_FIELDS dict. Empty/None fields are kept
-    as '' so the writer can decide column presence globally."""
+    as None so the DB layer's merge-upsert can decide column presence per-write."""
     if not isinstance(rec, dict):
         return None
 
     def get(field):
-        """Nested-first (latestWeight/totalAverage), then top-level — raw float or None."""
         for nk in ("latestWeight", "totalAverage"):
             nested = rec.get(nk)
             if isinstance(nested, dict) and nested.get(field) not in (None, "", 0):
@@ -173,7 +165,6 @@ def extract_reading(rec):
                 return normalize(v)
         return None
 
-    # Date resolution: several possible keys, nested or top-level.
     dt = None
     for ck in ("calendarDate", "summaryDate", "cdate", "date", "time", "dailyDate"):
         dt = _ms_to_date(rec.get(ck))
@@ -188,7 +179,6 @@ def extract_reading(rec):
             break
 
     if dt is None:
-        # Without a date we can't upsert safely; skip unless we at least have a weight.
         w = get_any(FIELD_KEYS["weight_kg"], lambda v: v)
         if w is None:
             return None
@@ -198,7 +188,7 @@ def extract_reading(rec):
     for field, keys in FIELD_KEYS.items():
         if field in GRA_FIELDS:
             val = get_any(keys, lambda v: v / 1000.0 if v > 100 else v)   # grams -> kg
-            out[field] = round(val, 2) if val is not None else ""
+            out[field] = round(val, 2) if val is not None else None
         else:
             rounder = lambda v, f=field: (round(v, 1)
                                           if f in ("body_fat_pct", "body_water_pct",
@@ -206,7 +196,7 @@ def extract_reading(rec):
                                                    "metabolic_age", "bmi") else
                                           (round(v, 1) if f in ("muscle_mass_kg", "bone_mass_kg") else v))
             val = get_any(keys, lambda v: v)
-            out[field] = rounder(val) if val is not None else ""
+            out[field] = rounder(val) if val is not None else None
     return out
 
 
@@ -214,7 +204,6 @@ def pull_garmin(g):
     today = datetime.date.today()
     start = today - datetime.timedelta(days=DAYS)
 
-    # Hardened calls: transient throttle -> back off and continue, never a dead pull.
     body = _call(g.get_body_composition, attempts=3, base_delay=6.0)(
         start.isoformat(), enddate=today.isoformat())
     weigh = _call(g.get_weigh_ins, attempts=3, base_delay=6.0)(
@@ -234,7 +223,8 @@ def pull_garmin(g):
 
 
 def _merge_by_date(rows):
-    """Merge per-date, newest non-empty value wins per field."""
+    """Merge per-date, newest non-empty value wins per field (pre-DB pass so a single
+    upsert call per date is enough)."""
     by = collections.OrderedDict()
     for r in sorted(rows, key=lambda x: x["date"]):
         d = r["date"]
@@ -247,102 +237,44 @@ def _merge_by_date(rows):
     return list(by.values())
 
 
-# ---------------------------------------------------------------- upsert weight.csv
-def read_weight_named():
-    """Read weight.csv mapping by HEADER NAME (forward- and backward-compatible)."""
-    out = collections.OrderedDict()
-    if not os.path.exists(WEIGH_CSV):
-        return out
-    with open(WEIGH_CSV, newline="", encoding="utf-8") as f:
-        rows = list(csv.reader(f))
-
-    # Find header row (the one containing 'date' as first cell).
-    hdr_i = None
-    for i, raw in enumerate(rows):
-        cells = [c.strip() for c in raw]
-        if cells and cells[0].lower() == "date":
-            hdr_i = i
-            cols = {c.strip(): j for j, c in enumerate(cells) if c.strip()}
-            break
-    if hdr_i is None:
-        return out
-
-    for raw in rows[hdr_i + 1:]:
-        if not any(c.strip() for c in raw):
-            continue
-        first = raw[0].strip()
-        if first.startswith("#"):
-            continue
-        try:
-            d = datetime.date.fromisoformat(first)
-        except ValueError:
-            continue
-        rec = {"date": d, "source": "garmin_api"}
-        for k, j in cols.items():
-            if k == "date":
-                continue
-            rec[k] = raw[j].strip() if j < len(raw) else ""
-        out[d] = rec
-    return out
-
-
-def _fmt(v):
-    if v in (None, "", 0, 0.0):
-        return ""
-    if isinstance(v, float) and v.is_integer():
-        return str(int(v))
-    return str(v) if v not in (None, "") else ""
-
-
-def upsert(new_readings):
-    by_date = read_weight_named()
-    for r in new_readings:
-        d = r["date"]
-        merged = by_date.get(d, dict(date=d, source="garmin_api"))
-        for k in DATA_FIELDS:
-            v = r.get(k)
-            if v not in (None, "", 0, 0.0):
-                merged[k] = v
-        merged["date"] = d
-        merged.setdefault("source", "garmin_api")
-        by_date[d] = merged
-
-    # Active columns = DATA_FIELDS that have at least one populated value anywhere.
-    active = [k for k in DATA_FIELDS if any(str(by_date[d].get(k, "")) not in ("", "0", "0.0")
-                                            for d in by_date)]
-    cols = ["date"] + active + ["source"]
-
-    with open(WEIGH_CSV, "w", newline="", encoding="utf-8") as f:
-        f.write(f"# Garmin-owned body-composition record. garmin-sync.py upserts by date "
-                f"(latest reading wins). Do not edit by hand.\n")
-        f.write("# source = one of: scale, user, garmin_api\n")
-        f.write("# Columns are auto-managed: a field appears only when Garmin reports it, "
-                "and drops when it stops. Present now: " + ", ".join(active) + "\n")
-        w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
-        w.writeheader()
-        for d in sorted(by_date):
-            r = by_date[d]
-            row = {"date": d.isoformat(),
-                   "source": r.get("source", "garmin_api")}
-            for k in active:
-                row[k] = _fmt(r.get(k))
-            w.writerow(row)
-    return len(by_date), active
+def store_readings(readings):
+    """Upsert each reading into body_metrics. Returns count stored."""
+    for r in readings:
+        fields = {k: r.get(k) for k in DATA_FIELDS}
+        db.upsert_body_metric(r["date"].isoformat(), source=r.get("source", "garmin_api"), **fields)
+    return len(readings)
 
 
 # ---------------------------------------------------------------- watch / recovery metrics
-# These come from the WATCH. The headline recovery stack (sleep stages, HRV, training
-# readiness) returns EMPTY on the current device — so we pull them but auto-drop them unless
-# the device starts reporting. Signals that ARE populated on this watch:
+# These come from the WATCH. get_user_summary(date) turns out to be a single call that
+# already bundles resting HR, active/total kcal, SpO2 avg/lowest, respiration avg, and
+# floors climbed — so one call/day covers all of those (confirmed 2026-09 against a
+# real account via explore_garmin.py; previously this was 3 separate per-day calls).
+# HRV (get_hrv_data) returns empty until the watch's HRV status report is actually run,
+# but the extraction is tolerant (stays NULL, never errors) so it activates the moment
+# you start logging it — no code change needed then.
 #   weekly_steps       -> weekly total/avg steps + distance   (get_weekly_steps, range)
 #   weekly_stress      -> weekly avg stress                    (get_weekly_stress, range)
-#   resting_hr         -> daily resting HR                     (get_rhr_day.allMetrics)
-#   active_kcal        -> daily active + total kilocalories    (get_user_summary)
 #   body_battery       -> daily body-battery last value        (get_body_battery, range)
-#   respiration        -> daily avg waking respiration         (get_respiration_data)
-# metrics.csv is WEEK-keyed (ISO week) — it feeds the recovery block in tracker.py's rollout.
-METRIC_KEYS = ("resting_hr", "steps_total", "steps_avg", "distance_m", "stress_avg",
-               "active_kcal", "total_kcal", "body_battery", "respiration_avg")
+#   user_summary       -> resting HR, kcal, SpO2, respiration, floors (get_user_summary, per day)
+#   hrv                -> last-night/weekly HRV avg (ms)        (get_hrv_data, per day)
+#   sleep              -> sleep score (0-100) + duration (hr)   (get_sleep_data, per day) —
+#                          confirmed populated on this device for a COMPLETED night; querying
+#                          "today" mid-day is legitimately empty (last night not synced yet),
+#                          not a bug — the backfill window naturally covers prior nights.
+#   vo2max/fitness_age -> single current-value calls, not a daily series (get_max_metrics,
+#                          get_fitnessage_data) — stored on the CURRENT week only.
+# watch_metrics is WEEK-keyed (ISO week) — feeds the recovery block in the rollup.
+# GARMIN_METRICS_DAYS controls the per-day-loop backfill window (default 7); the loop
+# used to run 14 days x 3 calls = 42 calls/cycle, which contributed to 429s on this
+# account — now 7 days x 3 calls (user_summary + hrv + sleep) = 21, plus ~5 range/single
+# calls. Still ~45% fewer than before, and covers far more signals per call. Drop
+# GARMIN_METRICS_DAYS further (e.g. 3-4) if 429s keep showing up in /api/sync/status.
+# Derived from db.WATCH_FIELDS (the actual table columns) rather than hand-duplicated —
+# a hand-copied list here once silently dropped bmr_kcal/sleep_score/sleep_duration_hr
+# after they were added to the schema but not to this tuple. Single source of truth now.
+METRIC_KEYS = db.WATCH_FIELDS
+METRICS_DAYS = int(os.environ.get("GARMIN_METRICS_DAYS", "7"))
 
 
 def _iso_week(d):
@@ -355,16 +287,40 @@ def _mean(vals):
     return sum(vals) / len(vals) if vals else None
 
 
-def _extract_rhr(rec):
-    """resting HR lives in allMetrics[].metricsMap['WELLNESS_RESTING_HEART_RATE'][].value."""
-    am = rec.get("allMetrics")
-    if isinstance(am, dict):
-        mm = am.get("metricsMap", {})
-        series = mm.get("WELLNESS_RESTING_HEART_RATE") or []
-        for s in series:
-            if isinstance(s, dict) and isinstance(s.get("value"), (int, float)):
-                return float(s["value"])
-    return None
+def _extract_hrv(rec):
+    """HRV summary shape per Garmin Connect's (undocumented, community-observed) HRV
+    endpoint: {"hrvSummary": {"lastNightAvg":.., "weeklyAvg":.., ...}}. Empty/absent on
+    this account until the watch's HRV status report is actually run — tolerant lookup
+    so it just stays None until then, same as the rest of this module's field lookups."""
+    if not isinstance(rec, dict):
+        return None, None
+    summary = rec.get("hrvSummary") or rec.get("hrvSummaries") or {}
+    if isinstance(summary, list):
+        summary = summary[0] if summary else {}
+    if not isinstance(summary, dict):
+        return None, None
+    last_night = summary.get("lastNightAvg")
+    weekly = summary.get("weeklyAvg")
+    return (float(last_night) if isinstance(last_night, (int, float)) else None,
+            float(weekly) if isinstance(weekly, (int, float)) else None)
+
+
+def _extract_sleep(rec):
+    """Confirmed 2026-09 against a real night on this device: dailySleepDTO.sleepScores
+    .overall.value is the 0-100 sleep score; sleepTimeSeconds is total sleep duration.
+    Querying "today" mid-day returns an empty DTO (last night hasn't finished syncing
+    yet) — this is normal, not a bug; the per-day backfill loop naturally picks up
+    completed nights from prior days."""
+    if not isinstance(rec, dict):
+        return None, None
+    dto = rec.get("dailySleepDTO") or {}
+    if not isinstance(dto, dict):
+        return None, None
+    overall = (dto.get("sleepScores") or {}).get("overall") or {}
+    score = overall.get("value")
+    dur_s = dto.get("sleepTimeSeconds")
+    return (float(score) if isinstance(score, (int, float)) else None,
+            round(dur_s / 3600.0, 2) if isinstance(dur_s, (int, float)) else None)
 
 
 def pull_metrics(g):
@@ -372,10 +328,8 @@ def pull_metrics(g):
     One pass over the most recent window; weekly endpoints cover 8 weeks, per-day endpoints
     fill the same weeks. Throttle-safe via _call. Returns [] safely on any endpoint error."""
     today = datetime.date.today()
-    start = today - datetime.timedelta(days=56)       # 8 ISO weeks for the weekly endpoints
     weeks_out = collections.defaultdict(lambda: {"week": None})
 
-    # --- weekly steps + weekly stress (range endpoints, ~2 calls for 8 weeks each) ---
     time.sleep(1.0)
     try:
         for item in (g.get_weekly_steps(today.isoformat(), weeks=8) or []):
@@ -408,7 +362,6 @@ def pull_metrics(g):
     except Exception as e:
         sys.stderr.write(f"[metrics] weekly_stress err {type(e).__name__}\n")
 
-    # --- body battery range: last value per day -> current week mean ---
     time.sleep(1.0)
     try:
         bb = g.get_body_battery((today - datetime.timedelta(days=7)).isoformat(), today.isoformat()) or []
@@ -425,134 +378,115 @@ def pull_metrics(g):
 
     time.sleep(1.0)
 
-    # --- per-day endpoints: resting HR, daily activity, respiration (14 days, ~42 calls) ---
-    for n in range(13, -1, -1):
+    # get_user_summary bundles resting HR, kcal, SpO2, respiration and floors in ONE
+    # call/day (confirmed via explore_garmin.py against a real account 2026-09) — this
+    # replaces what used to be 3 separate per-day calls.
+    DAY_FIELD_MAP = (
+        ("_rhr_days", "resting_hr", "restingHeartRate"),
+        ("_day_active_kcal", "active_kcal", "activeKilocalories"),
+        ("_day_total_kcal", "total_kcal", "totalKilocalories"),
+        ("_day_bmr_kcal", "bmr_kcal", "bmrKilocalories"),
+        ("_res_days", "respiration_avg", "avgWakingRespirationValue"),
+        ("_spo2_avg_days", "spo2_avg", "averageSpo2"),
+        ("_spo2_low_days", "spo2_lowest", "lowestSpo2"),
+        ("_floors_days", "floors_climbed", "floorsAscended"),
+    )
+    for n in range(METRICS_DAYS - 1, -1, -1):
         d = today - datetime.timedelta(days=n)
         wk_iso = _iso_week(d)
-        # resting HR (daily)
         try:
-            rec = _call(g.get_rhr_day, attempts=2, base_delay=3.0)(d.isoformat()) or {}
-            hr = _extract_rhr(rec)
-            if hr:
-                weeks_out[wk_iso].setdefault("_rhr_days", []).append(hr)
-        except Exception as e:
-            sys.stderr.write(f"[metrics] rhr {d} err {type(e).__name__}\n")
-        time.sleep(0.8)
-        # daily activity: active + total kcal (steps/distance come ONLY from the weekly
-        # endpoint, so the per-week step metrics stay in consistent weekly-total units)
-        try:
-           u = _call(g.get_user_summary, attempts=2, base_delay=3.0)(d.isoformat()) or {}
-           for jk, src in (("active_kcal", "activeKilocalories"),
-                            ("total_kcal", "totalKilocalories")):
-               if isinstance(u.get(src), (int, float)):
-                   weeks_out[wk_iso].setdefault(f"_day_{jk}", []).append(float(u[src]))
+            u = _call(g.get_user_summary, attempts=2, base_delay=3.0)(d.isoformat()) or {}
+            for bucket, _key, src in DAY_FIELD_MAP:
+                v = u.get(src)
+                if isinstance(v, (int, float)):
+                    weeks_out[wk_iso].setdefault(bucket, []).append(float(v))
         except Exception as e:
             sys.stderr.write(f"[metrics] user_summary {d} err {type(e).__name__}\n")
         time.sleep(0.8)
-        # respiration: avg waking (fall back to avg sleep if none)
         try:
-            r = _call(g.get_respiration_data, attempts=2, base_delay=3.0)(d.isoformat()) or {}
-            avg = r.get("avgWakingRespirationValue") or r.get("avgSleepRespirationValue")
-            if isinstance(avg, (int, float)):
-                weeks_out[wk_iso].setdefault("_res_days", []).append(float(avg))
+            hrv_rec = _call(g.get_hrv_data, attempts=2, base_delay=3.0)(d.isoformat()) or {}
+            last_night, weekly = _extract_hrv(hrv_rec)
+            if last_night is not None:
+                weeks_out[wk_iso].setdefault("_hrv_last_night_days", []).append(last_night)
+            if weekly is not None:
+                weeks_out[wk_iso]["hrv_weekly_avg"] = weekly  # already a weekly figure, not averaged
         except Exception as e:
-            sys.stderr.write(f"[metrics] respiration {d} err {type(e).__name__}\n")
+            sys.stderr.write(f"[metrics] hrv {d} err {type(e).__name__}\n")
+        time.sleep(0.8)
+        try:
+            sleep_rec = _call(g.get_sleep_data, attempts=2, base_delay=3.0)(d.isoformat()) or {}
+            score, dur_hr = _extract_sleep(sleep_rec)
+            if score is not None:
+                weeks_out[wk_iso].setdefault("_sleep_score_days", []).append(score)
+            if dur_hr is not None:
+                weeks_out[wk_iso].setdefault("_sleep_duration_days", []).append(dur_hr)
+        except Exception as e:
+            sys.stderr.write(f"[metrics] sleep {d} err {type(e).__name__}\n")
         time.sleep(0.8)
 
-    # collapse per-day lists -> weekly averages, strip temp keys
+    # vo2max / fitness_age are current-value snapshots, not a daily series — one call
+    # each, stored on the CURRENT week only.
+    current_wk = _iso_week(today)
+    try:
+        mm = _call(g.get_max_metrics, attempts=2, base_delay=3.0)(today.isoformat()) or []
+        if isinstance(mm, list) and mm:
+            generic = (mm[0] or {}).get("generic") or {}
+            v = generic.get("vo2MaxValue")
+            if isinstance(v, (int, float)):
+                weeks_out[current_wk]["vo2max"] = float(v)
+    except Exception as e:
+        sys.stderr.write(f"[metrics] max_metrics err {type(e).__name__}\n")
+    time.sleep(0.8)
+    try:
+        fa = _call(g.get_fitnessage_data, attempts=2, base_delay=3.0)(today.isoformat()) or {}
+        v = fa.get("fitnessAge")
+        if isinstance(v, (int, float)):
+            weeks_out[current_wk]["fitness_age"] = round(float(v), 1)
+    except Exception as e:
+        sys.stderr.write(f"[metrics] fitnessage err {type(e).__name__}\n")
+
     rows = []
     for wk_iso, w in weeks_out.items():
-        for dk, key in (("_rhr_days", "resting_hr"), ("_bb_days", "body_battery")):
+        for dk, key, _src in DAY_FIELD_MAP:
             lst = w.pop(dk, None)
             if lst:
                 w[key] = round(_mean(lst), 1)
-        for jk in ("steps_total", "active_kcal", "total_kcal"):
-            lst = w.pop(f"_day_{jk}", None)
-            if lst:
-                w[jk] = round(_mean(lst), 1)
-        lst = w.pop("_res_days", None)
+        lst = w.pop("_bb_days", None)
         if lst:
-            w["respiration_avg"] = round(_mean(lst), 1)
+            w["body_battery"] = round(_mean(lst), 1)
+        lst = w.pop("_hrv_last_night_days", None)
+        if lst:
+            w["hrv_last_night"] = round(_mean(lst), 1)
+        lst = w.pop("_sleep_score_days", None)
+        if lst:
+            w["sleep_score"] = round(_mean(lst), 1)
+        lst = w.pop("_sleep_duration_days", None)
+        if lst:
+            w["sleep_duration_hr"] = round(_mean(lst), 2)
         w["week"] = wk_iso
         rows.append(w)
     return rows
 
 
-def load_metrics():
-    """Read metrics.csv mapping by header NAME (forward/backward compatible)."""
-    out = collections.OrderedDict()
-    if not os.path.exists(METRICS_CSV):
-        return out
-    with open(METRICS_CSV, newline="", encoding="utf-8") as f:
-        rows = list(csv.reader(f))
-    hdr_i = None
-    for i, raw in enumerate(rows):
-        cells = [c.strip() for c in raw]
-        if cells and cells[0].lower() == "week":
-            hdr_i = i
-            cols = {c.strip(): j for j, c in enumerate(cells) if c.strip()}
-            break
-    if hdr_i is None:
-        return out
-    for raw in rows[hdr_i + 1:]:
-        if not any(c.strip() for c in raw):
-            continue
-        first = raw[0].strip()
-        if first.startswith("#"):
-            continue
-        rec = {"week": first}
-        for k, j in cols.items():
-            if k == "week":
-                continue
-            rec[k] = raw[j].strip() if j < len(raw) else ""
-        out[first] = rec
-    return out
-
-
-def upsert_metrics(new_rows):
-    by_wk = load_metrics()
-    for r in new_rows:
-        wk = r["week"]
-        merged = by_wk.get(wk, {"week": wk})
-        for k in METRIC_KEYS:
-            v = r.get(k)
-            if v not in (None, "", 0, 0.0):
-                merged[k] = v
-        by_wk[wk] = merged
-
-    active = [k for k in METRIC_KEYS if any(str(by_wk[w].get(k, "")) not in ("", "0", "0.0")
-                                            for w in by_wk)]
-    cols = ["week"] + active
-    with open(METRICS_CSV, "w", newline="", encoding="utf-8") as f:
-        f.write("# Watch/recovery + activity, ISO-week-keyed. garmin-sync.py --mode watch upserts "
-                "(latest wins). Do not edit by hand.\n")
-        f.write("# Columns auto-managed: a signal appears when the watch reports it, drops when it "
-                "stops (e.g. sleep/HRV are empty on this device and stay off the sheet).\n")
-        f.write("# Present now: " + ", ".join(active) + "\n")
-        w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
-        w.writeheader()
-        for wk in sorted(by_wk):
-            r = by_wk[wk]
-            row = {"week": wk}
-            for k in active:
-                row[k] = _fmt(r.get(k))
-            w.writerow(row)
-    return len(by_wk), active
+def store_metrics(rows):
+    for r in rows:
+        fields = {k: r.get(k) for k in METRIC_KEYS}
+        db.upsert_watch_metric(r["week"], **fields)
+    return len(rows)
 
 
 def mode_watch():
     if not _tokenstore_present(TOKENSTORE) and not (os.environ.get("GARMIN_EMAIL") and os.environ.get("GARMIN_PASSWORD")):
         sys.stderr.write(f"[metrics] no tokenstore at {TOKENSTORE} and no creds set. "
-                          "Run 'python3 garmin-sync.py --mode init' once on a TTY first.\n")
+                          "Run 'python3 garmin_sync.py --mode init' once on a TTY first.\n")
         return 2
     g = login()
     rows = pull_metrics(g)
-    n, active = upsert_metrics(rows)
     if not rows:
-        sys.stderr.write("[metrics] no watch data returned this run; metrics.csv not rewritten.\n")
+        sys.stderr.write("[metrics] no watch data returned this run; watch_metrics not updated.\n")
         return 3
-    sys.stderr.write(f"[metrics] synced {len(rows)} week(s); metrics.csv now holds {n} week(s). "
-                     f"Active columns: {', '.join(active) if active else '(none populated)'}\n")
+    n = store_metrics(rows)
+    sys.stderr.write(f"[metrics] synced {n} week(s) into watch_metrics.\n")
     return 0
 
 
@@ -579,25 +513,21 @@ def mode_init():
 def mode_pull():
     if not _tokenstore_present(TOKENSTORE) and not (os.environ.get("GARMIN_EMAIL") and os.environ.get("GARMIN_PASSWORD")):
         sys.stderr.write(f"[garmin] no tokenstore at {TOKENSTORE} and no creds set. "
-                         "Run 'python3 garmin-sync.py --mode init' once on a TTY first.\n")
+                         "Run 'python3 garmin_sync.py --mode init' once on a TTY first.\n")
         return 2
     g = login()
     readings = pull_garmin(g)
     if not readings:
         sys.stderr.write(f"[garmin] 0 readings for last {DAYS} days — check the account/scale "
-                         "sync or Garmin rate-limit. weight.csv not rewritten.\n")
+                         "sync or Garmin rate-limit. body_metrics not updated.\n")
         return 3
-    n, active = upsert(readings)
-    written = active or DATA_FIELDS[:1]
-    sys.stderr.write(f"[garmin] synced {len(readings)} new day(s); weight.csv now holds {n} "
-                     f"day(s). Active columns: {', '.join(written)}\n")
+    n = store_readings(readings)
+    sys.stderr.write(f"[garmin] synced {n} day(s) into body_metrics.\n")
     return 0
 
 
 def mode_mock():
-    """14-day demo with a FULL field set (weight, fat, water, muscle, bone, bmi, basal met)
-    but deliberately NO visceral_fat, to prove the adaptive writer drops the empty column and
-    includes the new ones. No network, no creds."""
+    """14-day demo into body_metrics. No network, no creds."""
     today = datetime.date.today()
     demo, w = [], 83.0
     for i in range(13, -1, -1):
@@ -608,16 +538,15 @@ def mode_mock():
             body_water_pct=round(55.5 + i * 0.02, 1),
             muscle_mass_kg=round(34.2 + i * 0.01, 1),
             bone_mass_kg=round(3.1 + i * 0.002, 2),
-            visceral_fat="",            # simulate Garmin not sending it
             basal_met=round(1700 + i, 0),
             bmi=round(21.4 + (i % 3) * 0.1, 1)))
-    n, active = upsert(demo)
-    sys.stderr.write(f"[garmin] MOCK wrote {len(demo)} demo day(s) -> {n} row(s). "
-                     f"Active columns: {', '.join(active)}\n")
+    n = store_readings(demo)
+    sys.stderr.write(f"[garmin] MOCK wrote {n} demo day(s) into body_metrics.\n")
     return 0
 
 
 if __name__ == "__main__":
+    db.init_db()
     mode = "pull"
     if "--mode" in sys.argv:
         i = sys.argv.index("--mode")

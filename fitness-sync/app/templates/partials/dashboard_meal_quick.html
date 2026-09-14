@@ -1,0 +1,9 @@
+<div id="dash-meal-quick" class="meal-toggles">
+  {% for f, label in meal_labels.items() %}
+  <button type="button" class="toggle-btn {{ 'active' if today_row[f] else '' }}"
+          hx-post="/dashboard/meal-toggle" hx-target="#dash-meal-quick" hx-swap="outerHTML"
+          hx-vals='{"meal": "{{ f }}"}'>
+    {{ '✓' if today_row[f] else '' }} {{ label }}
+  </button>
+  {% endfor %}
+</div>

@@ -1,0 +1,11 @@
+<li class="card" id="note-{{ n.id }}">
+  <span class="badge {{ 'llm' if n.author == 'llm' else '' }}">{{ n.author }}</span>
+  <strong>{{ n.title or "" }}</strong>
+  <p>{{ n.body }}</p>
+  <p class="muted">{{ n.created_at }}
+    {% if n.related_date %} · {{ n.related_date }}{% endif %}
+    {% if n.tags %} · {{ n.tags }}{% endif %}</p>
+  <button class="secondary" hx-get="/notes/{{ n.id }}/edit" hx-target="#note-{{ n.id }}" hx-swap="outerHTML">Edit</button>
+  <button class="secondary" hx-delete="/api/notes/{{ n.id }}" hx-target="#note-{{ n.id }}"
+          hx-swap="delete" hx-confirm="Delete this note?">Delete</button>
+</li>

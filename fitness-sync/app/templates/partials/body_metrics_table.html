@@ -1,0 +1,22 @@
+<table id="body-metrics-table">
+  <tr>
+    <th>Date</th><th>Weight (kg)</th><th>Body fat %</th><th>Water %</th>
+    <th>Muscle (kg)</th><th>Bone (kg)</th><th>BMI</th><th>Source</th><th></th>
+  </tr>
+  {% for r in rows %}
+  <tr>
+    <td>{{ r.date }}</td>
+    <td>{{ r.weight_kg or "—" }}</td>
+    <td>{{ r.body_fat_pct or "—" }}</td>
+    <td>{{ r.body_water_pct or "—" }}</td>
+    <td>{{ r.muscle_mass_kg or "—" }}</td>
+    <td>{{ r.bone_mass_kg or "—" }}</td>
+    <td>{{ r.bmi or "—" }}</td>
+    <td><span class="badge {{ 'llm' if r.source == 'llm' else '' }}">{{ r.source }}</span></td>
+    <td><button class="secondary" hx-delete="/api/body-metrics/{{ r.date }}" hx-target="closest tr"
+                 hx-swap="delete" hx-confirm="Delete this reading?">Delete</button></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="9" class="muted">No readings yet.</td></tr>
+  {% endfor %}
+</table>

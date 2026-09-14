@@ -1,0 +1,13 @@
+<table id="meal-plan-table">
+  <tr><th>Date</th>{% for label in labels.values() %}<th>{{ label }}</th>{% endfor %}<th>Protein (g)</th><th>Note</th></tr>
+  {% for r in rows %}
+  <tr>
+    <td>{{ r.date }}</td>
+    {% for f in labels.keys() %}<td>{{ '✓' if r[f] else '–' }}</td>{% endfor %}
+    <td>{{ r.protein_g or "—" }}</td>
+    <td>{{ r.note or "" }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="7" class="muted">No entries yet.</td></tr>
+  {% endfor %}
+</table>

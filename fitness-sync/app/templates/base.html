@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}fitness-sync{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+  <link rel="icon" href="/static/icon-192.png">
+  <meta name="theme-color" content="#2f6f4f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="fitness-sync">
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <nav>
+    <a href="/" class="brand">fitness-sync</a>
+    <a href="/meal-plan">Meal Plan</a>
+    <a href="/analytics">Analytics</a>
+    <details class="nav-more">
+      <summary>More</summary>
+      <div class="nav-more-panel">
+        <a href="/body-metrics">Garmin readings</a>
+        <a href="/measurements">Measurements</a>
+        <a href="/health">Health</a>
+        <a href="/workouts">Workouts</a>
+        <a href="/notes">Notes</a>
+        <a href="/docs" target="_blank">API docs</a>
+      </div>
+    </details>
+  </nav>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

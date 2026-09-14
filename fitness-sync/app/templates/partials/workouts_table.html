@@ -1,0 +1,22 @@
+<div id="workouts-wrap">
+  <p class="muted">Last import: {{ last_import or "never" }} · showing {{ rows|length }} of {{ total_matching }} matching sets</p>
+  <table>
+    <tr><th>Date</th><th>Exercise</th><th>Weight (kg)</th><th>Reps</th><th>Source</th><th></th><th></th></tr>
+    {% for r in rows %}
+    <tr>
+      <td>{{ r.date }}</td>
+      <td>{{ r.exercise }}</td>
+      <td>{{ r.weight_kg }}</td>
+      <td>{{ r.reps }}</td>
+      <td><span class="badge">{{ r.source }}</span></td>
+      <td>
+        {% if r.is_weight_pr %}<span class="badge pr">PR</span>{% endif %}
+      </td>
+      <td><button class="secondary" hx-delete="/api/workouts/{{ r.id }}" hx-target="closest tr"
+                   hx-swap="delete" hx-confirm="Delete this set?">Delete</button></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="muted">No sets yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>

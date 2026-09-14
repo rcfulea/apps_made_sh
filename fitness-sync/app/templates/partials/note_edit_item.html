@@ -1,0 +1,14 @@
+<li class="card" id="note-{{ n.id }}">
+  <form hx-post="/notes/{{ n.id }}/save" hx-target="#note-{{ n.id }}" hx-swap="outerHTML">
+    <label>Title <input type="text" name="title" value="{{ n.title or '' }}"></label>
+    <label style="display:block;margin-top:.4rem;">Body
+      <textarea name="body" rows="3" required style="width:100%;">{{ n.body }}</textarea>
+    </label>
+    <label>Related date <input type="date" name="related_date" value="{{ n.related_date or '' }}"></label>
+    <label>Tags <input type="text" name="tags" value="{{ n.tags or '' }}"></label>
+    <div style="margin-top:.4rem;">
+      <button type="submit">Save</button>
+      <button type="button" class="secondary" hx-get="/notes/{{ n.id }}/view" hx-target="#note-{{ n.id }}" hx-swap="outerHTML">Cancel</button>
+    </div>
+  </form>
+</li>

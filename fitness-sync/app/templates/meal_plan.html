@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Meal Plan — fitness-sync{% endblock %}
+{% block content %}
+<h1>Meal Plan</h1>
+<p class="muted">Tap a meal as soon as you eat it — one tap, no form. The grid below
+shows your last 14 days at a glance so you can see the pattern, not just today.</p>
+
+{% include "partials/meal_plan_today.html" %}
+
+<h2>Protein &amp; notes</h2>
+<form class="inline" hx-post="/meal-plan/save" hx-target="#meal-plan-table" hx-swap="outerHTML">
+  <label>Date <input type="date" name="date" value="{{ today }}" required></label>
+  <label>Protein (g) <input type="number" step="1" name="protein_g"></label>
+  <label>Note <input type="text" name="note"></label>
+  <button type="submit">Save</button>
+</form>
+
+{% include "partials/meal_plan_table.html" %}
+{% endblock %}

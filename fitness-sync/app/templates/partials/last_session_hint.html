@@ -1,0 +1,9 @@
+<div id="last-session-hint" class="muted">
+{% if hint %}
+Last: {{ hint.last_date }} — {{ hint.last_top_weight_kg }}kg × {{ hint.last_top_reps }} · all-time best {{ hint.best_weight_kg }}kg
+{% if hint.close_to_pr %} · <strong>close to a new PR!</strong>{% endif %}
+{% if hint.plateau %} · no improvement in {{ hint.sessions_logged }} sessions{% endif %}
+{% elif exercise %}
+No history yet for this exercise.
+{% endif %}
+</div>

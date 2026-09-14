@@ -1,0 +1,57 @@
+<div id="meal-plan-today">
+  <div class="grid">
+    <div class="card">
+      <div class="muted">This week</div>
+      <div class="stat">{{ week.checked }}/{{ week.possible }}</div>
+      <div class="muted">{{ week.pct }}% of meals checked</div>
+    </div>
+    <div class="card">
+      <div class="muted">Protein today</div>
+      <div class="stat">{{ today_row.protein_g or 0 }}{% if protein_goal %} / {{ protein_goal.value }}{% endif %} g</div>
+      {% if protein_goal %}
+        <div class="muted">
+          {% if protein_goal.source == "auto" %}auto (1.8g/kg × weight 7d MA){% else %}manual goal{% endif %}
+        </div>
+      {% endif %}
+      <form class="inline" style="margin-top:.5rem;margin-bottom:0;"
+            hx-post="/meal-plan/goal" hx-target="#meal-plan-today" hx-swap="outerHTML">
+        <label>Override (g)
+          <input type="number" step="5" name="protein_goal_g"
+                 value="{{ protein_goal.value if protein_goal and protein_goal.source == 'manual' else '' }}"
+                 placeholder="e.g. 160">
+        </label>
+        <button type="submit" class="secondary">Set</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Today — {{ today }}</h2>
+    <div class="meal-toggles">
+      {% for f, label in labels.items() %}
+      <button type="button" class="toggle-btn {{ 'active' if today_row[f] else '' }}"
+              hx-post="/meal-plan/toggle" hx-target="#meal-plan-today" hx-swap="outerHTML"
+              hx-vals='{"meal": "{{ f }}", "date": "{{ today }}"}'>
+        {{ '✓' if today_row[f] else '' }} {{ label }}
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Last 14 days</h2>
+    <div class="table-scroll">
+    <table>
+      <tr><th>Date</th>{% for label in labels.values() %}<th>{{ label }}</th>{% endfor %}</tr>
+      {% for day in grid %}
+      <tr>
+        <td>{{ day.date }}</td>
+        {% for f in labels.keys() %}
+        <td class="{{ 'meal-hit' if day[f] else 'muted' }}">{{ '✓' if day[f] else '–' }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </table>
+    </div>
+  </div>
+</div>

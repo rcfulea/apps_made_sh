@@ -12,15 +12,24 @@ data/garmin/tokens
 # ── local config / credentials (per-host) ──
 .env
 
-# ── personal health + training data (per-host; container-owned or your manual drops) ──
-# weight.csv / metrics.csv / rollout.csv are written by the container each cycle.
-# body.csv + hevy are your manual drops. Keep the dirs, drop the personal content.
+# ── personal health + training data (per-host) ──
+# SQLite is now the single source of truth (see app/db.py) — everything the container
+# and the web UI write lives in this one file. Keep the dir, drop the personal content.
+data/fitness.db
+data/fitness.db-*
+data/backups/
+!data/.gitkeep
+
+# legacy CSVs (pre-SQLite layout) — still ignored in case an old checkout has them
 body.csv
 garmin/weight.csv
 garmin/metrics.csv
 rollout.csv
 hevy/inbox/*.csv
 !hevy/inbox/.gitkeep
+
+# ── one-off Garmin data-surface discovery dump (explore_garmin.py, personal data) ──
+garmin_explore_output.json
 
 # ── backups + scratch (regenerable, not part of the deploy) ──
 *.bak
